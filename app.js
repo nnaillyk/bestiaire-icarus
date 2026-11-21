@@ -34,7 +34,8 @@ const mapName=k=>k==="ferme"&&!FR()?MAPS_EN.ferme.name:MAPS[k].name;
 const mapF=(k,f)=>FR()?MAPS[k][f]:MAPS_EN[k][f];
 const catName=k=>FR()?CATS[k][0]:CATS_EN[k];
 const iname=i=>i==="Vestige"?"Vestiges":FR()?(IT[i]?.[0]||i):i;          // nom d'un objet de butin
-const xname=idx=>{const n=ITEMS[idx][1];return FR()&&IT[n]?IT[n][0]:n;};  // nom d'un objet du catalogue
+const FR_NAMES=ITEMS.map(it=>IT[it[1]]?IT[it[1]][0]:frItemName(it[1]));
+const xname=idx=>FR()?FR_NAMES[idx]:ITEMS[idx][1];  // nom d'un objet du catalogue
 const gname=g=>GROUP_L[prefs.lang][g];
 const stname=s=>{const n=STATIONS[s][0];return FR()?(STATION_FR[n]||n):n;};
 const extra=s=>FR()?EXTRA_FR.reduce((a,[e,f])=>a.split(e).join(f),s):s.replace(/_/g," ");
@@ -66,7 +67,8 @@ function zonesOf(c,map){const v=c[9][map];if(v===undefined)return null;if(v===""
 function applyTheme(){const r=document.documentElement;if(prefs.theme==="auto")delete r.dataset.theme;else r.dataset.theme=prefs.theme;r.lang=prefs.lang;}
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);};
 const CRAFT_ACCENT=["#2f7a6e","#d6ece8","#7fd1c2","#173430"];
-function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
+const TREE_ACCENT=["#7a4fa0","#ebe0f4","#c4a3ea","#2c2140"],GUIDE_ACCENT=["#a0601f","#f3e4d2","#e8a868","#3a2716"];
+function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
 function setAccent(){const [m,s]=accentOf(state.view);const r=document.documentElement.style;r.setProperty("--map",m);r.setProperty("--map-soft",s);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=isDark()?"#161c19":"#e4e9e6";}
 
@@ -80,13 +82,13 @@ const TAB_ICONS={best:`<svg viewBox="0 0 24 24" width="20" height="20" fill="non
  crafts:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-3 3-6-6zM11 7l-7 7 3 3 7-7"/><path d="M4 20h7"/></svg>`};
 function renderChrome(){
   const t=T();
-  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:C.filter(c=>c[9][k]!==undefined).length;
-  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:mapName(k);
+  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":C.filter(c=>c[9][k]!==undefined).length;
+  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:mapName(k);
   const link=k=>`<a class="navlink" href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}><span class="dot"></span>${label(k)}<span class="ct">${count(k)}</span></a>`;
   document.getElementById("sidebar").innerHTML=`
     <p class="brand"><small>${t.brand_small}</small>${t.brand}</p>
     <nav class="navgroup" aria-label="${t.regions}"><h2>${t.regions}</h2>${REGIONS.map(link).join("")}${link("ferme")}</nav>
-    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["objets","crafts"].map(link).join("")}</nav>
+    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["objets","crafts","arbres","guide"].map(link).join("")}</nav>
     <button class="navlink setbtn" type="button" data-settings>${GEAR}<span>${t.settings}</span></button>
     <div class="sidefoot">${t.sources}</div>`;
   document.getElementById("mtop").innerHTML=`<p class="brand">${t.brand}</p><button class="iconbtn" type="button" data-settings aria-label="${t.settings}">${GEAR}</button>`;
@@ -95,7 +97,8 @@ function renderChrome(){
     <a href="#${state.lastRegion}" ${inBest?'aria-current="page"':""}>${TAB_ICONS.best}<span>${t.bestiary}</span></a>
     <a href="#objets" ${state.view==="objets"?'aria-current="page"':""}>${TAB_ICONS.objets}<span>${t.objects}</span></a>
     <a href="#crafts" ${state.view==="crafts"?'aria-current="page"':""}>${TAB_ICONS.crafts}<span>${t.crafts}</span></a>
-    <button type="button" data-settings>${GEAR}<span>${t.settings}</span></button>`;
+    <a href="#arbres" ${state.view==="arbres"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="5" r="2.5"/><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M12 7.5v4M12 11.5 7 15.8M12 11.5l5 4.3"/></svg><span>${t.trees}</span></a>
+    <a href="#guide" ${state.view==="guide"?'aria-current="page"':""}><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v14c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v14"/></svg><span>${t.guide}</span></a>`;
   document.querySelectorAll("[data-settings]").forEach(b=>b.onclick=()=>openSheet({type:"settings"},true));
   document.getElementById("sheetBack").setAttribute("aria-label",t.back);
   document.getElementById("sheetClose").setAttribute("aria-label",t.close);
@@ -189,26 +192,32 @@ function renderCatalog(){
   wireSegs(v,()=>{state.xlim=PAGE;renderCatalogList();});
   renderCatalogList();
 }
+/* Défilement continu : on ajoute un lot dès que le bas de la liste approche */
+let scrollObs=null;
+function infinite(sentinel,more){if(scrollObs)scrollObs.disconnect();if(!sentinel)return;
+  scrollObs=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))more();},{rootMargin:"1200px 0px"});scrollObs.observe(sentinel);}
 function renderCatalogList(){
   const t=T(),q=state.xq.trim().toLowerCase();
-  let idxs=ITEMS.map((_,i)=>i)
+  const idxs=ITEMS.map((_,i)=>i)
     .filter(i=>state.xcat==="all"||ITEMS[i][2]===state.xcat)
     .filter(i=>state.xf==="all"||(state.xf==="loot"?SOURCES[ITEMS[i][1]]:MADE_BY[i]))
     .filter(i=>!q||(ITEMS[i][1]+" "+xname(i)+" "+ITEMS[i][3]).toLowerCase().includes(q));
   idxs.sort((a,b)=>GROUP_ORDER.indexOf(ITEMS[a][2])-GROUP_ORDER.indexOf(ITEMS[b][2])||xname(a).localeCompare(xname(b),prefs.lang));
-  const shown=idxs.slice(0,state.xlim);
-  document.getElementById("result").textContent=t.shown(shown.length,idxs.length);
-  let html="",cur=null;
-  for(const i of shown){const g=ITEMS[i][2];
-    if(g!==cur){if(cur!==null)html+="</div></section>";cur=g;html+=`<section class="cat"><h2>${gname(g)}</h2><div class="items">`;}
-    const mk=MADE_BY[i]?.length||0,dr=SOURCES[ITEMS[i][1]]?.length||0;
-    html+=`<button class="it" type="button" data-x="${i}">${itemIcon(i)}<span class="it-t"><b>${esc(xname(i))}</b><small>${esc(FR()&&IT[ITEMS[i][1]]?ITEMS[i][1]:gname(g))}</small></span><span class="badges">${mk?`<i title="${t.crafting}">⚒ ${mk}</i>`:""}${dr?`<i title="${t.dropped_by}">🐾 ${dr}</i>`:""}</span></button>`;}
-  if(cur!==null)html+="</div></section>";
-  if(!shown.length)html=`<div class="empty">${t.none_i}</div>`;
-  if(idxs.length>shown.length)html+=`<button class="more" type="button" id="more">${t.show_more} (${idxs.length-shown.length})</button>`;
-  const out=document.getElementById("itemsOut");out.innerHTML=html;
-  out.querySelectorAll(".it").forEach(el=>el.onclick=()=>openSheet({type:"x",id:+el.dataset.x},true));
-  const m=document.getElementById("more");if(m)m.onclick=()=>{state.xlim+=PAGE*2;renderCatalogList();};
+  document.getElementById("result").textContent=FR()?`${idxs.length} objets`:`${idxs.length} items`;
+  const out=document.getElementById("itemsOut");
+  if(!idxs.length){out.innerHTML=`<div class="empty">${t.none_i}</div>`;infinite(null);return;}
+  out.innerHTML=`<div id="catList"></div><div class="sentinel" id="sentinel"></div>`;
+  const list=document.getElementById("catList");let pos=0,curBox=null,cur=null;
+  const add=()=>{if(pos>=idxs.length){infinite(null);document.getElementById("sentinel")?.remove();return;}
+    const end=Math.min(idxs.length,pos+PAGE);
+    for(;pos<end;pos++){const i=idxs[pos],g=ITEMS[i][2];
+      if(g!==cur){cur=g;const sec=document.createElement("section");sec.className="cat";sec.innerHTML=`<h2>${gname(g)}</h2><div class="items"></div>`;list.appendChild(sec);curBox=sec.lastElementChild;}
+      const mk=MADE_BY[i]?.length||0,dr=SOURCES[ITEMS[i][1]]?.length||0;
+      const b=document.createElement("button");b.className="it";b.type="button";
+      b.innerHTML=`${itemIcon(i)}<span class="it-t"><b>${esc(xname(i))}</b><small>${esc(FR()&&xname(i)!==ITEMS[i][1]?ITEMS[i][1]:gname(g))}</small></span><span class="badges">${mk?`<i title="${t.crafting}">⚒ ${mk}</i>`:""}${dr?`<i title="${t.dropped_by}">🐾 ${dr}</i>`:""}</span>`;
+      b.onclick=()=>openSheet({type:"x",id:i},true);curBox.appendChild(b);}
+  };
+  add();infinite(document.getElementById("sentinel"),add);
 }
 
 /* ---------- Vue crafts ---------- */
@@ -243,12 +252,16 @@ function renderRecList(){
   const t=T(),q=state.rq.trim().toLowerCase();
   let list=REC.filter(r=>state.rst==="all"||r.st.includes(+state.rst))
     .filter(r=>!q||[...r.outs,...r.ins].some(([i])=>(ITEMS[i][1]+" "+xname(i)).toLowerCase().includes(q))||r.ex.toLowerCase().includes(q));
-  const shown=list.slice(0,state.rlim);
-  document.getElementById("result").textContent=t.shown(shown.length,list.length);
+  document.getElementById("result").textContent=t.recipes_n(list.length);
   const out=document.getElementById("recOut");
-  out.innerHTML=(shown.length?shown.map(r=>recipeRow(r,true)).join(""):`<div class="empty">${t.none_i}</div>`)+(list.length>shown.length?`<button class="more" type="button" id="more">${t.show_more} (${list.length-shown.length})</button>`:"");
-  out.querySelectorAll("[data-x]").forEach(el=>el.onclick=()=>openSheet({type:"x",id:+el.dataset.x},true));
-  const m=document.getElementById("more");if(m)m.onclick=()=>{state.rlim+=PAGE*2;renderRecList();};
+  if(!list.length){out.innerHTML=`<div class="empty">${t.none_i}</div>`;infinite(null);return;}
+  out.innerHTML=`<div class="sentinel" id="sentinel"></div>`;let pos=0;
+  const sent=document.getElementById("sentinel");
+  const add=()=>{if(pos>=list.length){infinite(null);sent.remove();return;}
+    const end=Math.min(list.length,pos+PAGE/2);const frag=document.createElement("div");frag.innerHTML=list.slice(pos,end).map(r=>recipeRow(r,true)).join("");pos=end;
+    frag.querySelectorAll("[data-x]").forEach(el=>el.onclick=()=>openSheet({type:"x",id:+el.dataset.x},true));
+    while(frag.firstChild)out.insertBefore(frag.firstChild,sent);};
+  add();infinite(sent,add);
 }
 
 /* ---------- Panneau ---------- */
@@ -264,6 +277,7 @@ function drawSheet(){const e=state.stack[state.stack.length-1];const body=docume
   if(e.type==="c")drawCreature(body,byName[e.id]);
   else if(e.type==="x")drawCatalogItem(body,e.id);
   else if(e.type==="i"){const ci=ITEM_BY_NAME[e.id];ci!==undefined?drawCatalogItem(body,ci):drawLootItem(body,e.id);}
+  else if(e.type==="t")drawTalent(body,e.id);
   else drawSettings(body);
   body.scrollTop=0;
   body.querySelectorAll("[data-goc]").forEach(b=>b.onclick=()=>openSheet({type:"c",id:b.dataset.goc}));
@@ -277,7 +291,7 @@ function drawCreature(body,c){const t=T();const [n,b,d,tm,hp,wk,rs,x,,maps]=c;co
   const loot=LOOTS[n];
   const vnote=["boss","hunt"].includes(kd)?t.v_boss:LOOT[n]&&LOOT[n].includes("Vestige")?t.v_chance:t.v_tax;
   body.innerHTML=`
-  <div class="sheet-top">${imgTag(creImg(n),"hero-img",`<span class="glyph" style="--g:var(--soft);color:var(--muted)">${esc(glyphTxt(n))}</span>`)}
+  <div class="sheet-top">${imgTag(creImg(n),"hero-img zoomable",`<span class="glyph" style="--g:var(--soft);color:var(--muted)">${esc(glyphTxt(n))}</span>`)}
    <div><span class="pill ${b}">${beh(b)}</span>${kindL(kd)&&kd!=="ferme"?` <span class="kind">${kindL(kd)}</span>`:""}<h2 id="sheetTitle" style="margin-top:8px">${esc(cname(n))}</h2>${FR()&&NAME_FR[n]?`<p class="gname">${t.gname} : ${esc(n)}</p>`:""}</div></div>
   <p class="lede">${esc(cdesc(c))}</p>
   <div class="kv"><div><span>${t.hp}</span><strong>${hp?hp.toLocaleString(prefs.lang):t.nc}</strong></div><div><span>${t.diet}</span><strong>${d==="C"?t.carn:t.herb}</strong></div><div><span>${t.taming}</span><strong style="color:var(--tame)">${tame(tm)||t.no}</strong></div></div>
@@ -300,9 +314,9 @@ function drawCatalogItem(body,i){const t=T();const it=ITEMS[i];
   const usedOuts=[...new Set(used.flatMap(r=>r.outs.map(o=>o[0])))];
   body.innerHTML=`
   <div class="sheet-top">${itemIcon(i,true)}
-    <div><h2 id="sheetTitle">${esc(xname(i))}</h2>${FR()&&IT[it[1]]?`<p class="gname">${t.gname} : ${esc(it[1])}</p>`:""}</div></div>
+    <div><h2 id="sheetTitle">${esc(xname(i))}</h2>${FR()&&xname(i)!==it[1]?`<p class="gname">${t.gname} : ${esc(it[1])}</p>`:""}</div></div>
   ${it[3]?`<p class="lede">${esc(it[3])}</p>`:""}
-  <div class="kv"><div><span>${t.category}</span><strong style="font-size:.9rem">${gname(it[2])}</strong></div><div><span>${t.stack}</span><strong>${it[5]||1}</strong></div><div><span>${t.recipes_k}</span><strong>${made.length}</strong></div></div>
+  <div class="kv"><div><span>${t.category}</span><strong style="font-size:.9rem">${gname(it[2])}</strong></div><div><span>${t.stack}</span><strong>${it[5]||1}</strong></div><div><span>${t.crafting}</span><strong>${made.length}</strong></div></div>
   <div class="sec"><h3>${t.crafting}</h3>${made.length?made.slice(0,12).map(r=>recipeRow(r,true)).join(""):`<p class="ext" style="margin:0">${t.no_recipe}</p>`}</div>
   ${usedOuts.length?`<div class="sec"><h3>${t.used_in} · ${usedOuts.length}</h3><div class="chips">${usedOuts.slice(0,40).map(o=>`<button class="chip" type="button" data-x="${o}">${itemIcon(o)}<span>${esc(xname(o))}</span></button>`).join("")}${usedOuts.length>40?`<span class="exs">${t.and_more(usedOuts.length-40)}</span>`:""}</div></div>`:""}
   ${dropsTable(it[1])}
@@ -345,12 +359,14 @@ scrim.onclick=closeSheet;
 addEventListener("keydown",e=>{if(e.key==="Escape"&&sheet.classList.contains("on"))closeSheet();});
 
 /* ---------- Routage ---------- */
-function route(keep){const h=location.hash.slice(1);const v=MAPS[h]||h==="objets"||h==="crafts"?h:"olympus";
+const VIEWS={objets:()=>renderCatalog(),crafts:()=>renderCrafts(),arbres:()=>renderTrees(),guide:()=>renderGuide()};
+function route(keep){const h=location.hash.slice(1);const v=MAPS[h]||VIEWS[h]?h:"olympus";
   if(v!==state.view&&!keep)state.zone="all";state.view=v;if(MAPS[v])state.lastRegion=v;setAccent();renderChrome();
-  v==="objets"?renderCatalog():v==="crafts"?renderCrafts():renderMap();}
+  VIEWS[v]?VIEWS[v]():renderMap();}
 addEventListener("hashchange",()=>{if(sheet.classList.contains("on"))closeSheet();state.zone="all";route();scrollTo({top:0});});
 matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",()=>{setAccent();renderChrome();});
-applyTheme();state.view="";route();
+applyTheme();
+addEventListener("DOMContentLoaded",()=>{state.view="";route();});
 
 /* ---------- Hors connexion ---------- */
 if("serviceWorker" in navigator&&location.protocol.startsWith("http"))navigator.serviceWorker.register("sw.js").catch(()=>{});
