@@ -71,7 +71,7 @@ function applyTheme(){const r=document.documentElement;if(prefs.theme==="auto")d
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);};
 const CRAFT_ACCENT=["#2f7a6e","#d6ece8","#7fd1c2","#173430"];
 const TREE_ACCENT=["#7a4fa0","#ebe0f4","#c4a3ea","#2c2140"],GUIDE_ACCENT=["#a0601f","#f3e4d2","#e8a868","#3a2716"];
-function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
+function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:k==="montures"?["#8a5a2b","#f1e4d6","#e0a86e","#36261a"]:k==="poissons"?["#2a6f97","#d7e9f4","#7cc0e8","#15303f"]:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
 function setAccent(){const [m,s]=accentOf(state.view);const r=document.documentElement.style;r.setProperty("--map",m);r.setProperty("--map-soft",s);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=isDark()?"#161c19":"#e4e9e6";}
 
@@ -85,17 +85,17 @@ const TAB_ICONS={best:`<svg viewBox="0 0 24 24" width="20" height="20" fill="non
  crafts:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-3 3-6-6zM11 7l-7 7 3 3 7-7"/><path d="M4 20h7"/></svg>`};
 function renderChrome(){
   const t=T();
-  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":C.filter(c=>c[9][k]!==undefined).length;
-  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:mapName(k);
+  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":k==="montures"?MOUNTS.length:k==="poissons"?FISH.length:C.filter(c=>c[9][k]!==undefined).length;
+  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:k==="montures"?t.mounts:k==="poissons"?t.fish:mapName(k);
   const link=k=>`<a class="navlink" href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}><span class="dot"></span>${label(k)}<span class="ct">${count(k)}</span></a>`;
   document.getElementById("sidebar").innerHTML=`
     <p class="brand"><small>${t.brand_small}</small>${t.brand}</p>
     <nav class="navgroup" aria-label="${t.regions}"><h2>${t.regions}</h2>${REGIONS.map(link).join("")}${link("ferme")}</nav>
-    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["objets","crafts","arbres","guide"].map(link).join("")}</nav>
+    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["montures","poissons","objets","crafts","arbres","guide"].map(link).join("")}</nav>
     <button class="navlink setbtn" type="button" data-settings>${GEAR}<span>${t.settings}</span></button>
     <div class="sidefoot">${t.sources}</div>`;
   document.getElementById("mtop").innerHTML=`<p class="brand">${t.brand}</p><button class="iconbtn" type="button" data-settings aria-label="${t.settings}">${GEAR}</button>`;
-  const inBest=MAPS[state.view]!==undefined;
+  const inBest=MAPS[state.view]!==undefined||state.view==="montures"||state.view==="poissons";
   document.getElementById("tabbar").innerHTML=`
     <a href="#${state.lastRegion}" ${inBest?'aria-current="page"':""}>${TAB_ICONS.best}<span>${t.bestiary}</span></a>
     <a href="#objets" ${state.view==="objets"?'aria-current="page"':""}>${TAB_ICONS.objets}<span>${t.objects}</span></a>
@@ -111,7 +111,7 @@ function renderChrome(){
 const SEARCH_ICON=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="m10.6 10.6 3.4 3.4"/></svg>`;
 function seg(key,opts,cls){return `<div class="seg ${cls||""}" role="group">${opts.map(([v,l])=>`<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key]===v}">${l}</button>`).join("")}</div>`;}
 function wireSegs(root,after){root.querySelectorAll(".seg button[data-k]").forEach(b=>b.onclick=()=>{state[b.dataset.k]=b.dataset.v;b.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));after();});}
-const regionSwitch=()=>`<nav class="regionsw" aria-label="${T().regions}">${[...REGIONS,"ferme"].map(k=>`<a href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}>${mapName(k)}</a>`).join("")}</nav>`;
+const regionSwitch=()=>`<nav class="regionsw" aria-label="${T().regions}">${[...REGIONS,"ferme","montures","poissons"].map(k=>`<a href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}>${k==="montures"?T().mounts:k==="poissons"?T().fish:mapName(k)}</a>`).join("")}</nav>`;
 
 /* ---------- Vue région ---------- */
 function renderMap(){
@@ -301,6 +301,7 @@ function drawCreature(body,c){const t=T();const [n,b,d,tm,hp,wk,rs,x,,maps]=c;co
   <div class="sec"><h3>${t.combat}</h3><dl class="ws"><dt>${t.weak}</dt><dd class="wk">${esc(trait(wk))}</dd><dt>${t.resist}</dt><dd>${esc(trait(rs))}</dd><dt>${t.traits}</dt><dd>${esc(trait(x))}</dd></dl></div>
   <div class="sec"><h3>${kd==="faune"||kd==="ferme"?t.loot_knife:t.loot}</h3>${loot.length?`<table class="loot"><thead><tr><th>${t.item}</th><th class="num">${t.qty}</th><th class="num">${t.chance}</th></tr></thead><tbody>${loot.map(r=>`<tr><td><button class="linkbtn" type="button" data-goi="${esc(r.item)}">${lootIcon(r.item)}${esc(r.tx?(FR()?"Vestige : "+cname(n):n+" Vestige"):iname(r.item))}</button></td><td class="num">${r.qty}</td><td class="num">${r.ch} %<span class="chance"><i style="width:${r.ch}%"></i></span></td></tr>`).join("")}</tbody></table>${loot.some(r=>r.tx)?`<p class="ext" style="margin:6px 0 0">${vnote}</p>`:""}`:`<p class="ext" style="margin:0">${t.not_doc}</p>`}</div>
   <div class="sec"><h3>${t.where}</h3><div class="maprow">${Object.keys(maps).map(k=>{const zi=zonesOf(c,k);return `<div class="mapcard"><a href="#${k}" style="--c:${accentOf(k)[0]}"><i></i>${mapName(k)}</a><p>${zi.z.length?zi.z.map(zl).join(" · "):t.zone_unk}${zi.b.length?"<br>"+esc(zi.b.map(bioName).join(", ")):""}</p></div>`}).join("")}</div></div>
+  ${typeof creatureExtra==="function"?creatureExtra(n):""}
   <a class="ext" href="${wiki(n)}" target="_blank" rel="noopener">${t.wiki}</a>`;
 }
 
@@ -319,6 +320,7 @@ function drawCatalogItem(body,i){const t=T();const it=ITEMS[i];
   <div class="sheet-top">${itemIcon(i,true)}
     <div><h2 id="sheetTitle">${esc(xname(i))}</h2>${FR()&&xname(i)!==it[1]?`<p class="gname">${t.gname} : ${esc(it[1])}</p>`:""}</div></div>
   ${idesc(i)?`<p class="lede">${esc(idesc(i))}</p>`:""}
+  ${typeof itemExtra==="function"?itemExtra(i):""}
   <div class="kv"><div><span>${t.category}</span><strong style="font-size:.9rem">${gname(it[2])}</strong></div><div><span>${t.stack}</span><strong>${it[5]||1}</strong></div><div><span>${t.crafting}</span><strong>${made.length}</strong></div></div>
   <div class="sec"><h3>${t.crafting}</h3>${made.length?made.slice(0,12).map(r=>recipeRow(r,true)).join(""):`<p class="ext" style="margin:0">${t.no_recipe}</p>`}</div>
   ${usedOuts.length?`<div class="sec"><h3>${t.used_in} · ${usedOuts.length}</h3><div class="chips">${usedOuts.slice(0,40).map(o=>`<button class="chip" type="button" data-x="${o}">${itemIcon(o)}<span>${esc(xname(o))}</span></button>`).join("")}${usedOuts.length>40?`<span class="exs">${t.and_more(usedOuts.length-40)}</span>`:""}</div></div>`:""}
