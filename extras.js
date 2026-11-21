@@ -88,7 +88,8 @@ function gameTraits(n){const tr=GAME_TRAITS[TR_ALIAS[n]||n];if(!tr)return "";con
 function epicNames(n){const tn=n;const list=EPICS.filter(e=>e[1]===tn);if(!list.length)return "";
   const names=[...new Set(list.flatMap(e=>(FR()?e[4]:e[3]).split(", ")))].filter(Boolean);
   return `<div class="sec"><h3>${FR()?"Spécimens épiques (missions)":"Epic specimens (missions)"}</h3><p class="note">${esc(names.join(", "))}</p></div>`;}
-function creatureExtra(n){const t=T(),m=MOUNT_BY_CRE[n],tr=TAME_BY_CRE[n];const head=gameTraits(n)+epicNames(n);if(!m&&!tr)return head;
+function behNote(n){const c=byName[n];if(!c)return "";return `<div class="sec"><h3>${FR()?"Comportement":"Behaviour"}</h3><p class="note"><span class="pill ${c[1]}">${beh(c[1])}</span> ${esc(BEH_NOTE[prefs.lang][c[1]])}</p></div>`;}
+function creatureExtra(n){const t=T(),m=MOUNT_BY_CRE[n],tr=TAME_BY_CRE[n];const head=behNote(n)+gameTraits(n)+epicNames(n);if(!m&&!tr)return head;
   const sd=saddlesOf(m),k=m?treeOfArch(m[2]):-1;
   return head+`<div class="sec"><h3>${t.mount_sec}</h3>
     ${tr?`<div class="kv"><div><span>${t.tame_time}</span><strong>${mins(tr[1])}</strong></div><div><span>${t.gest}</span><strong>${mins(tr[5])}</strong></div><div><span>${t.temp}</span><strong style="font-size:.85rem">${tempTxt(tr[2],tr[3])}</strong></div></div>`:""}
