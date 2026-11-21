@@ -26,19 +26,22 @@ REC.forEach(r=>{r.outs.forEach(([i])=>(MADE_BY[i]??=[]).push(r));r.ins.forEach((
 for(const k in USED_IN)USED_IN[k]=[...new Set(USED_IN[k])];
 
 /* ---------- Traduction des données ---------- */
-const cname=n=>FR()?(NAME_FR[n]||n):n;
-const cdesc=c=>FR()?c[8]:(LORE_EN[LORE_ALIAS[c[0]]||c[0]]||c[8]);
+const creL=n=>L_CRE[LORE_ALIAS[n]||n];
+const cname=n=>FR()?(creL(n)?.[0]||NAME_FR[n]||n):n;
+const cdesc=c=>FR()?(creL(c[0])?.[1]||c[8]):(LORE_EN[LORE_ALIAS[c[0]]||c[0]]||c[8]);
+const bioName=b=>FR()?(L_BIOMES[b]||b):b;
 const trait=s=>FR()?s:s.split(" · ").map(t=>TOK_EN[t]??WORD_EN.reduce((a,[f,e])=>a.replace(f,e),t)).join(" · ");
 const zl=z=>FR()?ZL[z]:ZL_EN[z];
 const mapName=k=>k==="ferme"&&!FR()?MAPS_EN.ferme.name:MAPS[k].name;
 const mapF=(k,f)=>FR()?MAPS[k][f]:MAPS_EN[k][f];
 const catName=k=>FR()?CATS[k][0]:CATS_EN[k];
-const iname=i=>i==="Vestige"?"Vestiges":FR()?(IT[i]?.[0]||i):i;          // nom d'un objet de butin
-const FR_NAMES=ITEMS.map(it=>IT[it[1]]?IT[it[1]][0]:frItemName(it[1]));
+const iname=i=>i==="Vestige"?"Vestiges":FR()?(ITEM_BY_NAME[i]!==undefined?FR_NAMES[ITEM_BY_NAME[i]]:(IT[i]?.[0]||i)):i;          // nom d'un objet de butin
+const FR_NAMES=ITEMS.map((it,i)=>L_ITEMS[i]?.[0]||frItemName(it[1]));
+const idesc=i=>FR()?(L_ITEMS[i]?.[1]||ITEMS[i][3]):ITEMS[i][3];
 const xname=idx=>FR()?FR_NAMES[idx]:ITEMS[idx][1];  // nom d'un objet du catalogue
 const gname=g=>GROUP_L[prefs.lang][g];
-const stname=s=>{const n=STATIONS[s][0];return FR()?(STATION_FR[n]||n):n;};
-const extra=s=>FR()?EXTRA_FR.reduce((a,[e,f])=>a.split(e).join(f),s):s.replace(/_/g," ");
+const stname=s=>{const n=STATIONS[s][0];return FR()?(L_STATIONS[s]||STATION_FR[n]||n):n;};
+const extra=s=>FR()?EXTRA_FR.reduce((a,[e,f])=>a.split(e).join(f),Object.entries(L_TAGS).reduce((a,[e,f])=>f?a.split(e).join(f):a,s)):s.replace(/_/g," ");
 const beh=b=>BEH_L[prefs.lang][b];
 const tame=t=>TAME_L[prefs.lang][t]||"";
 const kindL=k=>KIND_L[prefs.lang][k];
@@ -162,7 +165,7 @@ function renderGrid(){
     const top=LOOTS[n].filter(r=>!r.tx&&r.ch===100).slice(0,3).map(r=>iname(r.item));
     const kd=kindOf(c);
     return `<button class="cc ${b}" type="button" data-c="${esc(n)}">
-      <div class="hd">${imgTag(creImg(n),"thumb",`<span class="glyph" style="--g:var(--soft);color:var(--muted)">${esc(glyphTxt(n))}</span>`)}<div class="ttl"><h3>${esc(cname(n))}</h3><div class="sub">${FR()&&NAME_FR[n]?esc(n)+" · ":""}${d==="C"?t.carn:t.herb}${zi.z.length?" · "+zi.z.map(zl).join(", "):""}</div></div><span class="pill ${b}">${beh(b)}</span></div>
+      <div class="hd">${imgTag(creImg(n),"thumb",`<span class="glyph" style="--g:var(--soft);color:var(--muted)">${esc(glyphTxt(n))}</span>`)}<div class="ttl"><h3>${esc(cname(n))}</h3><div class="sub">${FR()&&cname(n)!==n?esc(n)+" · ":""}${d==="C"?t.carn:t.herb}${zi.z.length?" · "+zi.z.map(zl).join(", "):""}</div></div><span class="pill ${b}">${beh(b)}</span></div>
       <div class="hp"><span>${FR()?"PV":"HP"}</span><span class="bar"><i style="width:${w}%"></i></span><b>${hp?hp.toLocaleString(prefs.lang):t.nc}</b></div>
       <div class="mini">${top.length?top.map(x=>`<span>${esc(x)}</span>`).join(""):`<span>${t.no_loot}</span>`}</div>
       <div class="ft"><span class="tame">${kindL(kd)&&kd!=="ferme"?`<span class="kind">${kindL(kd)}</span> `:""}${tame(tm)}</span><span>${kd==="ferme"?t.workshop:Object.keys(c[9]).length>1?t.regions_n(Object.keys(c[9]).length):t.exclusive_s}</span></div>
@@ -201,7 +204,7 @@ function renderCatalogList(){
   const idxs=ITEMS.map((_,i)=>i)
     .filter(i=>state.xcat==="all"||ITEMS[i][2]===state.xcat)
     .filter(i=>state.xf==="all"||(state.xf==="loot"?SOURCES[ITEMS[i][1]]:MADE_BY[i]))
-    .filter(i=>!q||(ITEMS[i][1]+" "+xname(i)+" "+ITEMS[i][3]).toLowerCase().includes(q));
+    .filter(i=>!q||(ITEMS[i][1]+" "+xname(i)+" "+idesc(i)).toLowerCase().includes(q));
   idxs.sort((a,b)=>GROUP_ORDER.indexOf(ITEMS[a][2])-GROUP_ORDER.indexOf(ITEMS[b][2])||xname(a).localeCompare(xname(b),prefs.lang));
   document.getElementById("result").textContent=FR()?`${idxs.length} objets`:`${idxs.length} items`;
   const out=document.getElementById("itemsOut");
@@ -292,12 +295,12 @@ function drawCreature(body,c){const t=T();const [n,b,d,tm,hp,wk,rs,x,,maps]=c;co
   const vnote=["boss","hunt"].includes(kd)?t.v_boss:LOOT[n]&&LOOT[n].includes("Vestige")?t.v_chance:t.v_tax;
   body.innerHTML=`
   <div class="sheet-top">${imgTag(creImg(n),"hero-img zoomable",`<span class="glyph" style="--g:var(--soft);color:var(--muted)">${esc(glyphTxt(n))}</span>`)}
-   <div><span class="pill ${b}">${beh(b)}</span>${kindL(kd)&&kd!=="ferme"?` <span class="kind">${kindL(kd)}</span>`:""}<h2 id="sheetTitle" style="margin-top:8px">${esc(cname(n))}</h2>${FR()&&NAME_FR[n]?`<p class="gname">${t.gname} : ${esc(n)}</p>`:""}</div></div>
+   <div><span class="pill ${b}">${beh(b)}</span>${kindL(kd)&&kd!=="ferme"?` <span class="kind">${kindL(kd)}</span>`:""}<h2 id="sheetTitle" style="margin-top:8px">${esc(cname(n))}</h2>${FR()&&cname(n)!==n?`<p class="gname">${t.gname} : ${esc(n)}</p>`:""}</div></div>
   <p class="lede">${esc(cdesc(c))}</p>
   <div class="kv"><div><span>${t.hp}</span><strong>${hp?hp.toLocaleString(prefs.lang):t.nc}</strong></div><div><span>${t.diet}</span><strong>${d==="C"?t.carn:t.herb}</strong></div><div><span>${t.taming}</span><strong style="color:var(--tame)">${tame(tm)||t.no}</strong></div></div>
   <div class="sec"><h3>${t.combat}</h3><dl class="ws"><dt>${t.weak}</dt><dd class="wk">${esc(trait(wk))}</dd><dt>${t.resist}</dt><dd>${esc(trait(rs))}</dd><dt>${t.traits}</dt><dd>${esc(trait(x))}</dd></dl></div>
   <div class="sec"><h3>${kd==="faune"||kd==="ferme"?t.loot_knife:t.loot}</h3>${loot.length?`<table class="loot"><thead><tr><th>${t.item}</th><th class="num">${t.qty}</th><th class="num">${t.chance}</th></tr></thead><tbody>${loot.map(r=>`<tr><td><button class="linkbtn" type="button" data-goi="${esc(r.item)}">${lootIcon(r.item)}${esc(r.tx?(FR()?"Vestige : "+cname(n):n+" Vestige"):iname(r.item))}</button></td><td class="num">${r.qty}</td><td class="num">${r.ch} %<span class="chance"><i style="width:${r.ch}%"></i></span></td></tr>`).join("")}</tbody></table>${loot.some(r=>r.tx)?`<p class="ext" style="margin:6px 0 0">${vnote}</p>`:""}`:`<p class="ext" style="margin:0">${t.not_doc}</p>`}</div>
-  <div class="sec"><h3>${t.where}</h3><div class="maprow">${Object.keys(maps).map(k=>{const zi=zonesOf(c,k);return `<div class="mapcard"><a href="#${k}" style="--c:${accentOf(k)[0]}"><i></i>${mapName(k)}</a><p>${zi.z.length?zi.z.map(zl).join(" · "):t.zone_unk}${zi.b.length?"<br>"+esc(zi.b.join(", ")):""}</p></div>`}).join("")}</div></div>
+  <div class="sec"><h3>${t.where}</h3><div class="maprow">${Object.keys(maps).map(k=>{const zi=zonesOf(c,k);return `<div class="mapcard"><a href="#${k}" style="--c:${accentOf(k)[0]}"><i></i>${mapName(k)}</a><p>${zi.z.length?zi.z.map(zl).join(" · "):t.zone_unk}${zi.b.length?"<br>"+esc(zi.b.map(bioName).join(", ")):""}</p></div>`}).join("")}</div></div>
   <a class="ext" href="${wiki(n)}" target="_blank" rel="noopener">${t.wiki}</a>`;
 }
 
@@ -315,7 +318,7 @@ function drawCatalogItem(body,i){const t=T();const it=ITEMS[i];
   body.innerHTML=`
   <div class="sheet-top">${itemIcon(i,true)}
     <div><h2 id="sheetTitle">${esc(xname(i))}</h2>${FR()&&xname(i)!==it[1]?`<p class="gname">${t.gname} : ${esc(it[1])}</p>`:""}</div></div>
-  ${it[3]?`<p class="lede">${esc(it[3])}</p>`:""}
+  ${idesc(i)?`<p class="lede">${esc(idesc(i))}</p>`:""}
   <div class="kv"><div><span>${t.category}</span><strong style="font-size:.9rem">${gname(it[2])}</strong></div><div><span>${t.stack}</span><strong>${it[5]||1}</strong></div><div><span>${t.crafting}</span><strong>${made.length}</strong></div></div>
   <div class="sec"><h3>${t.crafting}</h3>${made.length?made.slice(0,12).map(r=>recipeRow(r,true)).join(""):`<p class="ext" style="margin:0">${t.no_recipe}</p>`}</div>
   ${usedOuts.length?`<div class="sec"><h3>${t.used_in} · ${usedOuts.length}</h3><div class="chips">${usedOuts.slice(0,40).map(o=>`<button class="chip" type="button" data-x="${o}">${itemIcon(o)}<span>${esc(xname(o))}</span></button>`).join("")}${usedOuts.length>40?`<span class="exs">${t.and_more(usedOuts.length-40)}</span>`:""}</div></div>`:""}
