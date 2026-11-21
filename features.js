@@ -7,7 +7,7 @@ Object.assign(UI.fr,{trees:"Arbres",guide:"Guide",trees_title:"Arbres de talents
  talent:"Talent",blueprint:"Blueprint",tree:"Arbre",rank_req:"Rang d'arbre requis",level_req:"Niveau requis",ranks:"Rangs",effects:"Effets",
  prereq:"Prérequis",unlocks:"Débloque ensuite",path:"Chemin complet",path_n:n=>`${n} étape${n>1?"s":""} avant`,default_unl:"Débloqué d'office",
  open_item:"Voir l'objet et sa recette",none:"Aucun",tech_hint:"Les blueprints coûtent des points de tech ; le niveau indiqué est le niveau de personnage minimum.",
- talent_hint:"Le rang d'arbre (Novice → Apprenti → Compagnon → Maître) se gagne en investissant des points dans le même arbre : 4, 8 puis 12 points.",
+ talent_hint:"Le rang d'arbre (Novice → Apprenti → Compagnon → Maître) se gagne en investissant des points dans le même arbre : 4, 8 puis 12 points. Cliquez-glissez pour vous déplacer, Ctrl + molette pour zoomer.",
  lvl:"Niv.",tap_zoom:"Touchez l'image pour l'agrandir"});
 Object.assign(UI.en,{trees:"Trees",guide:"Guide",trees_title:"Talent and tech trees",
  trees_p:"The game's trees exactly as stored in the files: character talents, tech (blueprints) by tier, orbital workshop, mounts and regions. Tap a node for details and the path to unlock it.",
@@ -29,13 +29,16 @@ const TAL_BY_ID={};TALENTS.forEach((t,i)=>TAL_BY_ID[t[0]]=i);
 const TAL_REQ=TALENTS.map(t=>t[8]?t[8].split(",").map(id=>TAL_BY_ID[id]).filter(x=>x!==undefined):[]);
 const TAL_KIDS=TALENTS.map(()=>[]);TAL_REQ.forEach((rs,i)=>rs.forEach(r=>TAL_KIDS[r].push(i)));
 const named=i=>!!TALENTS[i][4];
-const tname=i=>TALENTS[i][11]>=0?xname(TALENTS[i][11]):TALENTS[i][4];
+const tname=i=>FR()?(L_TALENTS[i]?.[0]||(TALENTS[i][11]>=0?xname(TALENTS[i][11]):TALENTS[i][4])):TALENTS[i][4];
+const tdesc=i=>FR()?(L_TALENTS[i]?.[1]||TALENTS[i][5]):TALENTS[i][5];
+const teff=i=>FR()?(L_TALENTS[i]?.[3]||TALENTS[i][12]):(L_TALENTS[i]?.[2]||TALENTS[i][12]);
 function resolveNamed(list,next,seen=new Set()){const out=[];for(const i of list){if(seen.has(i))continue;seen.add(i);if(named(i))out.push(i);else out.push(...resolveNamed(next(i),next,seen));}return [...new Set(out)];}
 const namedReqs=i=>resolveNamed(TAL_REQ[i],j=>TAL_REQ[j]);
 const namedKids=i=>resolveNamed(TAL_KIDS[i],j=>TAL_KIDS[j]);
 function fullPath(i){const order=[],seen=new Set();(function walk(j){for(const r of namedReqs(j)){if(seen.has(r))continue;seen.add(r);walk(r);order.push(r);}})(i);return order;}
-const treeLabel=k=>{const t=TREES[k];return trName(t[1]||t[3]);};
-const treeFull=k=>{const t=TREES[k];return t[1]&&t[3]&&t[1]!==t[3]&&t[4]==="talent"?trName(t[3])+" · "+trName(t[1]):treeLabel(k);};
+const treeLabel=k=>{const t=TREES[k];return FR()?(L_TREES[k]?.[0]||L_TREES[k]?.[1]||trName(t[1]||t[3])):(t[1]||t[3]);};
+const archLabel=k=>FR()?(L_TREES[k]?.[1]||trName(TREES[k][3])):TREES[k][3];
+const treeFull=k=>{const t=TREES[k];return t[1]&&t[3]&&t[1]!==t[3]&&t[4]==="talent"?archLabel(k)+" · "+treeLabel(k):treeLabel(k);};
 const TREE_NODES=TREES.map(()=>[]);TALENTS.forEach((t,i)=>TREE_NODES[t[1]].push(i));
 
 Object.assign(state,{tg:"talent",tree:TREES.findIndex(t=>t[4]==="talent"),tq:"",tzoom:1});
@@ -67,7 +70,22 @@ function renderTrees(){
   v.querySelector("#zin").onclick=()=>{state.tzoom=Math.min(2,state.tzoom*1.25);drawTree();};
   v.querySelector("#zout").onclick=()=>{state.tzoom=Math.max(.35,state.tzoom/1.25);drawTree();};
   drawTree();renderTreeSearch();
+  bindPan(document.getElementById("treewrap"));
 }
+/* Déplacement à la souris : cliquer-glisser pour se déplacer, Ctrl + molette pour zoomer */
+let panState=null,panMoved=false;
+function bindPan(wrap){
+  wrap.addEventListener("pointerdown",e=>{if(e.pointerType!=="mouse"||e.button!==0)return;
+    panState={x:e.clientX,y:e.clientY,l:wrap.scrollLeft,t:wrap.scrollTop,wrap};panMoved=false;});
+  wrap.addEventListener("click",e=>{if(panMoved){e.stopPropagation();e.preventDefault();panMoved=false;}},true);
+  wrap.addEventListener("wheel",e=>{if(!e.ctrlKey)return;e.preventDefault();
+    state.tzoom=e.deltaY<0?Math.min(2,state.tzoom*1.15):Math.max(.35,state.tzoom/1.15);drawTree();},{passive:false});
+  wrap.addEventListener("dragstart",e=>e.preventDefault());
+}
+addEventListener("pointermove",e=>{if(!panState)return;const dx=e.clientX-panState.x,dy=e.clientY-panState.y;
+  if(!panMoved&&Math.abs(dx)+Math.abs(dy)>5){panMoved=true;panState.wrap.classList.add("grabbing");}
+  if(panMoved){panState.wrap.scrollLeft=panState.l-dx;panState.wrap.scrollTop=panState.t-dy;}});
+addEventListener("pointerup",()=>{if(panState){panState.wrap.classList.remove("grabbing");panState=null;}});
 function drawTree(focus){
   const t=T(),k=state.tree,nodes=TREE_NODES[k];if(!nodes.length)return;
   const wide=Math.max(...nodes.map(i=>TALENTS[i][2]))>4000;
@@ -90,7 +108,7 @@ function drawTree(focus){
 function renderTreeSearch(){
   const t=T(),q=state.tq.trim().toLowerCase(),box=document.getElementById("tsearch");
   if(!q){box.innerHTML="";drawTree();return;}
-  const res=TALENTS.map((x,i)=>i).filter(i=>named(i)&&(TALENTS[i][4]+" "+tname(i)+" "+TALENTS[i][5]+" "+TALENTS[i][12]).toLowerCase().includes(q)).slice(0,60);
+  const res=TALENTS.map((x,i)=>i).filter(i=>named(i)&&(TALENTS[i][4]+" "+tname(i)+" "+tdesc(i)+" "+teff(i)).toLowerCase().includes(q)).slice(0,60);
   box.innerHTML=`<div class="result">${t.results(res.length)}</div><div class="chips tres">${res.map(i=>`<button type="button" class="chip" data-go="${i}">${imgTag(TALENTS[i][6],"","")}<span>${esc(tname(i))}</span><b>${esc(treeFull(TALENTS[i][1]))}</b></button>`).join("")}</div>`;
   box.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>goTalent(+b.dataset.go));
   drawTree();
@@ -107,10 +125,10 @@ function drawTalent(body,i){const t=T(),tl=TALENTS[i],k=tl[1];
   const fb=`<span class="glyph" style="--g:var(--map)">${esc(glyphTxt(tl[4]))}</span>`;
   body.innerHTML=`
   <div class="sheet-top">${imgTag(tl[6],"big zoomable",fb)}<div><h2 id="sheetTitle">${esc(tname(i))}</h2><p class="gname">${esc(treeFull(k))}${tname(i)!==tl[4]?" · "+esc(tl[4]):""}</p></div></div>
-  ${tl[5]?`<p class="lede">${esc(tl[5])}</p>`:""}
+  ${tdesc(i)?`<p class="lede">${esc(tdesc(i))}</p>`:""}
   <div class="kv"><div><span>${t.level_req}</span><strong>${tl[9]||"—"}</strong></div><div><span>${t.rank_req}</span><strong style="font-size:.9rem">${tl[10]?RANK_L[prefs.lang][tl[10]]||tl[10]:"—"}</strong></div><div><span>${t.ranks}</span><strong>${tl[7]||1}</strong></div></div>
   ${tl[14]?`<p class="note ok">${t.default_unl}</p>`:""}
-  ${tl[12]?`<div class="sec"><h3>${t.effects}</h3><p class="effects">${esc(tl[12]).split(" · ").join("<br>")}</p></div>`:""}
+  ${teff(i)?`<div class="sec"><h3>${t.effects}</h3><p class="effects">${esc(teff(i)).split(" · ").join("<br>")}</p></div>`:""}
   ${tl[11]>=0?`<div class="sec"><button type="button" class="primary" data-x="${tl[11]}">${t.open_item}</button>${(MADE_BY[tl[11]]||[]).slice(0,1).map(r=>recipeRow(r,true)).join("")}</div>`:""}
   <div class="sec"><h3>${t.prereq}</h3><div class="chips">${reqs.length?reqs.map(tchip).join(""):`<span class="exs">${t.none}</span>`}</div></div>
   ${path.length>reqs.length?`<div class="sec"><h3>${t.path} · ${t.path_n(path.length)}</h3><ol class="pathlist">${path.map(j=>`<li><button type="button" class="linkbtn" data-tt="${j}">${esc(tname(j))}</button>${TALENTS[j][9]?` <span class="exs">${t.lvl} ${TALENTS[j][9]}</span>`:""}</li>`).join("")}<li><b>${esc(tname(i))}</b></li></ol></div>`:""}
@@ -129,7 +147,7 @@ function bpLink(name){const i=TALENTS.findIndex(t=>t[4]===name&&TREES[t[1]][4]==
 function talLink(name){const i=TALENTS.findIndex(t=>t[4]===name&&TREES[t[1]][4]!=="tech");return i>=0?`<button type="button" class="gl" data-go="${i}">${esc(name)}</button>`:`<b>${esc(name)}</b>`;}
 const crLink=n=>byName[n]?`<button type="button" class="gl" data-goc="${esc(n)}">${esc(cname(n))}</button>`:esc(n);
 function treeTalents(name){const k=TREES.findIndex(t=>t[1]===name&&t[4]==="talent");if(k<0)return "";
-  return `<div class="tlist">${TREE_NODES[k].filter(named).sort((a,b)=>TALENTS[a][3]-TALENTS[b][3]).map(i=>`<button type="button" class="tli" data-go="${i}">${imgTag(TALENTS[i][6],"","")}<span><b>${esc(TALENTS[i][4])}</b><small>${esc(TALENTS[i][5]||TALENTS[i][12])}</small></span></button>`).join("")}</div>`;}
+  return `<div class="tlist">${TREE_NODES[k].filter(named).sort((a,b)=>TALENTS[a][3]-TALENTS[b][3]).map(i=>`<button type="button" class="tli" data-go="${i}">${imgTag(TALENTS[i][6],"","")}<span><b>${esc(tname(i))}</b><small>${esc(tdesc(i)||teff(i))}</small></span></button>`).join("")}</div>`;}
 
 function guideSections(){const fr=FR();
   const L=(f,e)=>fr?f:e;
@@ -174,12 +192,12 @@ function guideSections(){const fr=FR();
    <p>${L("Un mâle et une femelle adultes apprivoisés de la même espèce peuvent se reproduire. La femelle porte le petit pendant la durée de gestation, puis il faut l'élever comme un jeune apprivoisé. Le petit hérite des statistiques génétiques de ses parents, avec une chance de mutation.","A tamed adult male and female of the same species can breed. The female carries the young for the gestation time, then it must be raised like a tamed juvenile. The young inherits its parents' genetic stats, with a chance to mutate.")}</p>
    <h4>${L("Les 7 statistiques génétiques","The 7 genetic stats")}</h4>
    <div class="tablewrap"><table class="loot gtable"><thead><tr><th>${L("Statistique","Stat")}</th><th>${L("Agit sur","Affects")}</th></tr></thead><tbody>
-   ${GENETICS.map(g=>`<tr><td><b>${fr&&GEN_FR[g[0]]?GEN_FR[g[0]][0]:g[1]}</b>${fr?` <span class="exs">${g[1]}</span>`:""}</td><td>${fr&&GEN_FR[g[0]]?GEN_FR[g[0]][1]:esc(g[2])}</td></tr>`).join("")}
+   ${GENETICS.map(g=>`<tr><td><b>${fr?(L_GEN[g[0]]||GEN_FR[g[0]]?.[0]||g[1]):g[1]}</b>${fr?` <span class="exs">${g[1]}</span>`:""}</td><td>${fr&&GEN_FR[g[0]]?GEN_FR[g[0]][1]:esc(g[2])}</td></tr>`).join("")}
    </tbody></table></div>
    <h4>${L("Les 12 lignées (tempéraments)","The 12 lineages")}</h4>
    <p class="note">${L("Chaque animal naît avec une lignée tirée au hasard. Elle donne un petit malus fixe et un bonus qui grandit avec le niveau de l'animal.","Each animal is born with a random lineage. It gives a small fixed penalty and a bonus that grows with the animal's level.")}</p>
    <div class="tablewrap"><table class="loot gtable"><thead><tr><th>${L("Lignée","Lineage")}</th><th class="num">${L("Rareté","Odds")}</th><th>${L("Malus / effet fixe","Fixed effect")}</th><th>${L("Grandit avec le niveau","Grows with level")}</th></tr></thead><tbody>
-   ${LINEAGES.map(l=>`<tr><td><b>${fr&&LIN_FR[l[0]]?LIN_FR[l[0]]:l[0]}</b>${fr?` <span class="exs">${l[0]}</span>`:""}</td><td class="num">${(l[1]/totalW*100).toFixed(1)} %</td><td>${esc(l[2])}</td><td>${esc(l[3])||"—"}</td></tr>`).join("")}
+   ${LINEAGES.map(l=>`<tr><td><b>${fr?(L_LIN[l[0]]||LIN_FR[l[0]]||l[0]):l[0]}</b>${fr?` <span class="exs">${l[0]}</span>`:""}</td><td class="num">${(l[1]/totalW*100).toFixed(1)} %</td><td>${esc(l[2])}</td><td>${esc(l[3])||"—"}</td></tr>`).join("")}
    </tbody></table></div>
    <h4>${L("Talents d'élevage (arbre Aventure › Élevage)","Husbandry talents (Adventure › Husbandry)")}</h4>${treeTalents("Husbandry")}
    <h4>${L("Talents de génétique (arbre Aventure › Génétique)","Genetics talents (Adventure › Genetics)")}</h4>${treeTalents("Genetics")}`},
