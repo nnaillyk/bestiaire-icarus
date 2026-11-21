@@ -117,7 +117,7 @@ const regionSwitch=()=>`<nav class="regionsw" aria-label="${T().regions}">${[...
 function renderMap(){
   const t=T(),k=state.view,m=MAPS[k];const list=C.filter(c=>c[9][k]!==undefined);
   const cnt=b=>list.filter(c=>c[1]===b).length;const tm=list.filter(c=>c[3]!=="0").length;const only=list.filter(c=>Object.keys(c[9]).length===1).length;
-  const bosses=list.filter(c=>["boss","hunt"].includes(kindOf(c))).length;
+  const bosses=list.filter(c=>["boss","hunt","alpha"].includes(kindOf(c))).length;
   const kinds=[["all",t.all],["faune",t.fauna_k],...(m.special?[]:[["boss",t.boss_k],["grotte",t.cave_k]])];
   if(!kinds.some(x=>x[0]===state.kind))state.kind="all";
   const hunt=mapF(k,"hunt");
@@ -152,7 +152,7 @@ function renderMap(){
 function renderGrid(){
   const t=T(),k=state.view,q=state.q.trim().toLowerCase();
   let list=C.filter(c=>c[9][k]!==undefined)
-    .filter(c=>state.kind==="all"||(state.kind==="boss"?["boss","hunt"].includes(kindOf(c)):kindOf(c)===state.kind))
+    .filter(c=>state.kind==="all"||(state.kind==="boss"?["boss","hunt","alpha"].includes(kindOf(c)):kindOf(c)===state.kind))
     .filter(c=>state.beh==="all"||c[1]===state.beh)
     .filter(c=>state.tame==="all"||c[3]!=="0")
     .filter(c=>state.zone==="all"||zonesOf(c,k).z.includes(state.zone))
