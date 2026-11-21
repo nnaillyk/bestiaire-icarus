@@ -1,18 +1,24 @@
-// Service worker : met l'app en cache pour qu'elle marche hors connexion
-// Les images du wiki sont gardées au fur et à mesure qu'on les affiche.
-const CACHE="bestiaire-v2";
+// Service worker : l'app marche hors connexion.
+// Fichiers de l'app : réseau d'abord (toujours à jour), cache si hors ligne.
+// Images du wiki et polices : cache d'abord, gardées au fur et à mesure.
+const VERSION="3";
+const CACHE="bestiaire-app-v"+VERSION;
 const IMG_CACHE="bestiaire-images-v1";
-const FILES=["./","index.html","data.js","items.js","lore-en.js","i18n.js","app.js","manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES)).then(()=>self.skipWaiting()));});
+const FILES=["./","index.html","data.js?v="+VERSION,"items.js?v="+VERSION,"lore-en.js?v="+VERSION,"i18n.js?v="+VERSION,"app.js?v="+VERSION,"manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png"];
+self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:"reload"})))).then(()=>self.skipWaiting()));});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!==IMG_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener("fetch",e=>{
   if(e.request.method!=="GET")return;
   const url=new URL(e.request.url);
+  if(url.origin===location.origin){
+    e.respondWith(fetch(e.request).then(res=>{if(res.ok){const copy=res.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));}return res;})
+      .catch(()=>caches.match(e.request,{ignoreSearch:url.pathname.endsWith("/")}).then(hit=>hit||caches.match("index.html"))));
+    return;
+  }
   const isImg=url.hostname==="icarus.wiki.gg"&&url.pathname.startsWith("/images/");
-  const store=isImg?IMG_CACHE:CACHE;
+  const isFont=url.hostname.endsWith("fonts.googleapis.com")||url.hostname.endsWith("fonts.gstatic.com");
+  if(!isImg&&!isFont)return;
   e.respondWith(caches.match(e.request).then(hit=>hit||fetch(e.request).then(res=>{
-    if(res.ok||res.type==="opaque"){
-      if(isImg||url.origin===location.origin||url.hostname.endsWith("fonts.googleapis.com")||url.hostname.endsWith("fonts.gstatic.com")){const copy=res.clone();caches.open(store).then(c=>c.put(e.request,copy));}
-    }
-    return res;}).catch(()=>isImg?Response.error():caches.match("index.html"))));
+    if(res.ok||res.type==="opaque"){const copy=res.clone();caches.open(IMG_CACHE).then(c=>c.put(e.request,copy));}
+    return res;}).catch(()=>Response.error())));
 });
