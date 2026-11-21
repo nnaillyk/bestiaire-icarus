@@ -82,9 +82,15 @@ function drawFishList(){
 }
 
 /* ---------- Ajouts aux fiches ---------- */
-function creatureExtra(n){const t=T(),m=MOUNT_BY_CRE[n],tr=TAME_BY_CRE[n];if(!m&&!tr)return "";
+const TR_ALIAS={"Woolly Mammoth":"Mammoth","Columbian Mammoth":"Mammoth","Lava Broodling":"Lava Broodlings"};
+function gameTraits(n){const tr=GAME_TRAITS[TR_ALIAS[n]||n];if(!tr)return "";const list=(FR()?tr[1]:tr[0]).split(" · ").filter(Boolean);
+  return `<div class="sec"><h3>${FR()?"Traits officiels (bestiaire du jeu)":"Official traits (game bestiary)"}</h3><div class="chips">${list.map(x=>`<span class="chip tchip">${esc(x)}</span>`).join("")}</div></div>`;}
+function epicNames(n){const tn=n;const list=EPICS.filter(e=>e[1]===tn);if(!list.length)return "";
+  const names=[...new Set(list.flatMap(e=>(FR()?e[4]:e[3]).split(", ")))].filter(Boolean);
+  return `<div class="sec"><h3>${FR()?"Spécimens épiques (missions)":"Epic specimens (missions)"}</h3><p class="note">${esc(names.join(", "))}</p></div>`;}
+function creatureExtra(n){const t=T(),m=MOUNT_BY_CRE[n],tr=TAME_BY_CRE[n];const head=gameTraits(n)+epicNames(n);if(!m&&!tr)return head;
   const sd=saddlesOf(m),k=m?treeOfArch(m[2]):-1;
-  return `<div class="sec"><h3>${t.mount_sec}</h3>
+  return head+`<div class="sec"><h3>${t.mount_sec}</h3>
     ${tr?`<div class="kv"><div><span>${t.tame_time}</span><strong>${mins(tr[1])}</strong></div><div><span>${t.gest}</span><strong>${mins(tr[5])}</strong></div><div><span>${t.temp}</span><strong style="font-size:.85rem">${tempTxt(tr[2],tr[3])}</strong></div></div>`:""}
     ${sd.length?`<p class="exs" style="margin:10px 0 6px">${t.saddles}</p><div class="chips">${sd.map(i=>`<button class="chip" type="button" data-x="${i}">${itemIcon(i)}<span>${esc(xname(i))}</span></button>`).join("")}</div>`:""}
     ${k>=0?`<p style="margin:10px 0 0"><button type="button" class="linkbtn" data-tree-go="${k}">${t.open_tree} : ${esc(treeLabel(k))} ↗</button></p>`:""}</div>`;}
@@ -108,6 +114,11 @@ guideSections=function(){const fr=FR(),L=(f,e)=>fr?f:e,secs=_baseGuide();
    <p>${L("Les boss donnent des matériaux uniques et leur tête-trophée. Les Great Hunts se lancent depuis l'Open World avec le DLC Great Hunts et finissent par un combat d'arène.","Bosses drop unique materials and their head trophy. Great Hunts start from Open World with the Great Hunts DLC and end with an arena fight.")}</p>
    <div class="tablewrap"><table class="loot gtable"><thead><tr><th>${L("Boss","Boss")}</th><th>${L("Régions","Regions")}</th><th>${L("Faible à","Weak to")}</th><th>${L("Butin","Loot")}</th></tr></thead><tbody>
    ${bossList.map(c=>`<tr><td>${crLink(c[0])}</td><td>${Object.keys(c[9]).map(mapName).join(", ")}</td><td>${esc(trait(c[5]))}</td><td>${esc(lootTop(c[0]))}</td></tr>`).join("")}</tbody></table></div>`});
+  const epicGroups={};EPICS.forEach(e=>{const base=fr?e[2]:e[1];if(!base)return;(epicGroups[base]??=new Set());(fr?e[4]:e[3]).split(", ").filter(Boolean).forEach(x=>epicGroups[base].add(x));});
+  secs.push({id:"epiques",t:L("Créatures épiques","Epic creatures"),h:`
+   <p>${L("Pendant les missions, le jeu fait apparaître des spécimens uniques portant un nom propre : plus grands, plus solides et souvent hostiles. Voici les noms que le jeu leur donne, d'après la table D_EpicCreatures.","During missions the game spawns unique, named specimens: bigger, tougher and often hostile. Here are the names the game gives them, from the D_EpicCreatures table.")}</p>
+   <div class="tablewrap"><table class="loot gtable"><thead><tr><th>${L("Créature","Creature")}</th><th>${L("Noms possibles","Possible names")}</th></tr></thead><tbody>
+   ${Object.entries(epicGroups).sort((a,b)=>a[0].localeCompare(b[0])).map(([b,s])=>`<tr><td><b>${esc(b)}</b></td><td style="white-space:normal">${esc([...s].join(", "))}</td></tr>`).join("")}</tbody></table></div>`});
   secs.push({id:"montures",t:L("Montures et attelages","Mounts and hitches"),h:`
    <ul class="steps big">
     <li>${L("Une monture se dresse depuis un jeune animal (voir le tableau d'apprivoisement), puis se selle. Chaque selle a ses bonus : course, cargaison, froid, désert, armure, apprivoisement rapide…","A mount is trained from a juvenile (see the taming table), then saddled. Each saddle has its own bonuses: speed, cargo, cold, desert, armour, faster taming…")}</li>
