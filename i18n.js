@@ -6,7 +6,7 @@ fr:{brand_small:"Manuel du prospecteur",brand:"Bestiaire d'Icarus",regions:"Rég
  species:"espèces",aggressive_n:"agressives",bosses_n:"boss & hunts",tame_n:"apprivoisables",great_hunt:"Great Hunt",
  no_hunt:"Aucune campagne de chasse sur cette région.",farm_hunt:"Ces animaux s'achètent à l'atelier ou viennent d'un DLC.",
  search_c:"Créature, biome, faiblesse, objet…",search_i:"Cuir, peau arctique, soufre…",all:"Tous",fauna_k:"Faune",boss_k:"Boss & Great Hunt",cave_k:"Grottes",
- aggr_f:"Agressifs",neut_f:"Neutres",pass_f:"Paisibles",tame_f:"Apprivoisables",all_zones:"Toutes les zones",
+ aggr_f:"Agressifs",neut_f:"Territoriaux",pass_f:"Paisibles",tame_f:"Apprivoisables",all_zones:"Toutes les zones",
  sort_danger:"Tri : danger",sort_hp:"Tri : PV",sort_name:"Tri : nom",
  result:n=>`${n} créature${n>1?"s":""} · touchez une fiche pour le détail et le butin`,
  none_c:m=>`Aucune créature ne correspond à ces filtres sur ${m}.`,
@@ -34,7 +34,7 @@ en:{brand_small:"Prospector's field manual",brand:"Icarus Bestiary",regions:"Reg
  species:"species",aggressive_n:"aggressive",bosses_n:"bosses & hunts",tame_n:"tameable",great_hunt:"Great Hunt",
  no_hunt:"No hunting campaign in this region.",farm_hunt:"These animals come from the Workshop or a DLC.",
  search_c:"Creature, biome, weakness, item…",search_i:"Leather, arctic pelt, sulfur…",all:"All",fauna_k:"Fauna",boss_k:"Bosses & Great Hunts",cave_k:"Caves",
- aggr_f:"Aggressive",neut_f:"Neutral",pass_f:"Passive",tame_f:"Tameable",all_zones:"All zones",
+ aggr_f:"Aggressive",neut_f:"Territorial",pass_f:"Passive",tame_f:"Tameable",all_zones:"All zones",
  sort_danger:"Sort: danger",sort_hp:"Sort: HP",sort_name:"Sort: name",
  result:n=>`${n} creature${n>1?"s":""} · tap a card for details and loot`,
  none_c:m=>`No creature matches these filters in ${m}.`,
@@ -58,7 +58,8 @@ en:{brand_small:"Prospector's field manual",brand:"Icarus Bestiary",regions:"Reg
  offline:"Available offline",gname:"In-game name"}
 };
 
-const BEH_L={fr:{P:"Paisible",N:"Neutre",A:"Agressif"},en:{P:"Passive",N:"Neutral",A:"Aggressive"}};
+const BEH_L={fr:{P:"Paisible",N:"Territorial",A:"Agressif"},en:{P:"Passive",N:"Territorial",A:"Aggressive"}};
+const BEH_NOTE={fr:{P:"Fuit quand on l'approche.",N:"Ne vous chasse pas, mais attaque si on l'approche de trop près ou si on le provoque.",A:"Attaque à vue."},en:{P:"Flees when approached.",N:"Won't hunt you, but attacks if you get too close or provoke it.",A:"Attacks on sight."}};
 const TAME_L={fr:{m:"Monture",c:"Compagnon",a:"Apprivoisable"},en:{m:"Mount",c:"Companion",a:"Tameable"}};
 const KIND_L={fr:{boss:"Boss",hunt:"Great Hunt",grotte:"Grotte",ferme:"Ferme"},en:{boss:"Boss",hunt:"Great Hunt",grotte:"Cave",ferme:"Farm"}};
 const ZL_EN={foret:"Forest & rivers",desert:"Desert",arctique:"Arctic & glaciers",prairie:"Grasslands & woods",toundra:"Tundra",marais:"Swamp",volcan:"Volcanic",geo:"Geothermal",grotte:"Caves",irradie:"Irradiated zones",arene:"Great Hunt arena",ferme:"Ranch"};
