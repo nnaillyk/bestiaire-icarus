@@ -267,7 +267,9 @@ table.loot th.num{text-align:right}
 .treebar span{color:var(--muted);font:.74rem var(--f-mono)}
 .treebar .zoom{margin-left:auto;display:flex;gap:6px}
 .treewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;background:var(--panel);max-height:72vh;overscroll-behavior:contain}
-.tcanvas{position:relative}
+.tcanvas{position:relative;user-select:none}
+.treewrap{cursor:grab}
+.treewrap.grabbing,.treewrap.grabbing .tnode{cursor:grabbing}
 .tcanvas svg{position:absolute;inset:0}
 .tcanvas line{stroke:var(--line);stroke-width:2.5}
 .tnode{all:unset;box-sizing:border-box;position:absolute;transform:translate(-50%,-50%);width:var(--sz);display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
@@ -324,12 +326,13 @@ table.loot th.num{text-align:right}
   .pic.hero-img{width:84px;height:84px}
 }
 </style>
-<script src="data.js?v=4"></script>
-<script src="items.js?v=4"></script>
-<script src="lore-en.js?v=4"></script>
-<script src="i18n.js?v=4"></script>
-<script src="app.js?v=4"></script>
-<script src="talents.js?v=4"></script>
-<script src="features.js?v=4"></script>
+<script src="data.js?v=5"></script>
+<script src="items.js?v=5"></script>
+<script src="lore-en.js?v=5"></script>
+<script src="i18n.js?v=5"></script>
+<script src="loc.js?v=5"></script>
+<script src="app.js?v=5"></script>
+<script src="talents.js?v=5"></script>
+<script src="features.js?v=5"></script>
 </body>
 </html>
