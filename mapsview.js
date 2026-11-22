@@ -15,7 +15,18 @@ function mdesc(g,d){if(!FR())return d.replace(/\[\[([^\]]+)\]\]/g,"$1");
     Exotics:"Un gisement d'exotiques peut apparaître ici."+(/Only three/.test(d)?" Seuls trois sont actifs en même temps sur cette carte.":""),
     Oil:`Placez un ${pj} sur un geyser de pétrole pour extraire du pétrole.`,RedSeeds:"Une graine de plante exotique peut apparaître ici.",RedTrees:"Un arbre exotique peut apparaître ici.",
     Geysers:"Les geysers d'enzymes sont des formations naturelles présentes dans plusieurs biomes.",Uranium:"Un gisement d'uranium peut apparaître ici."})[g]||d;}
-Object.assign(state,{wm:"olympus",wbg:"base",wgroups:null,wz:1,wx:null,wy:null});
+Object.assign(state,{wm:"olympus",wbg:"base",wgroups:null,wz:1,wx:null,wy:null,hideMined:false});
+
+/* ---------- Suivi personnel (enregistré sur l'appareil) ---------- */
+const TRACK_KEY="icarus-cartes-suivi";
+let TRACK={};try{TRACK=JSON.parse(localStorage.getItem(TRACK_KEY)||"{}")||{};}catch(e){TRACK={};}
+const saveTrack=()=>{try{localStorage.setItem(TRACK_KEY,JSON.stringify(TRACK));}catch(e){}};
+const trk=(map,g,id)=>((TRACK[map]??={})[g]??={})[id];
+function setTrk(map,g,id,val){((TRACK[map]??={})[g]??={});if(val===null||val===undefined||(typeof val==="object"&&!Object.keys(val).length))delete TRACK[map][g][id];else TRACK[map][g][id]=val;saveTrack();}
+// Ressources possibles d'un filon profond (table D_OreDeposit du jeu) → nom de l'objet pour la traduction
+const DOV_ORES=[["Iron","Iron Ore","#b5651d"],["Copper","Copper Ore","#d17a3a"],["Gold","Gold Ore","#e6c229"],["Platinum","Platinum Ore","#cfd8dc"],["Titanium","Titanium Ore","#8fa3b8"],["Aluminium","Aluminium Ore","#a9b4c2"],["Silicon","Silica Ore","#e8e2c8"],["Coal","Coal Ore","#333333"],["Sulfur","Sulfur","#e3d23b"],["Oxite","Oxite","#f0f4f7"],["Salt","Salt","#f7f1e3"],["Stone","Stone","#8a8a8a"],["Clay","Clay","#b0704a"],["Scoria","Scoria","#7a3b2e"],["Obsidian","Obsidian","#2a1f3d"],["Limestone","Limestone","#d8cfb0"],["Super_Cooled_Ice","Super Cooled Ice","#7fd3f0"],["Exotic","Exotics","#9b59d0"],["Exotic_Red_Raw","Volatile Raw Exotics","#d0453a"],["Exotic_Raw_Uranium","Raw Uranium","#7ac943"],["Lithium","Lithium Ore","#c7a6e0"],["Cobalt","Cobalt Ore","#3a5fcd"],["Ruby","Ruby","#c2185b"]];
+const oreLabel=o=>{const r=DOV_ORES.find(x=>x[0]===o);if(!r)return o;const i=ITEM_BY_NAME[r[1]];return i!==undefined?xname(i):r[1];};
+const oreColor=o=>(DOV_ORES.find(x=>x[0]===o)||[,,"#8c96a3"])[2];
 
 function renderCartes(){
   const t=T(),M=WMAPS[state.wm];
@@ -28,26 +39,46 @@ function renderCartes(){
   <div class="mapctl">
     <div><h3>${t.bg}</h3><div class="seg" role="group">${[["base",""],...M.layers].map(([k])=>`<button type="button" data-wbg="${k}" aria-pressed="${state.wbg===k}">${MLAYER_L[prefs.lang][k]||k}</button>`).join("")}</div></div>
     <div><h3>${t.markers}</h3><div class="chips">${M.groups.map(g=>`<button type="button" class="chip mchip" data-wg="${g[0]}" aria-pressed="${!!state.wgroups[g[0]]}">${g[2]?`<img src="${IMG_BASE}${encodeURI(g[2])}" alt="" width="18" height="18">`:`<i style="background:${MGROUP_COLOR[g[0]]}"></i>`}<span>${MGROUP_L[prefs.lang][g[0]]||g[1]}</span><b>${g[3].length}</b></button>`).join("")}</div></div>
+    <div><h3>${FR()?"Mon suivi":"My progress"}</h3><div class="trackbar" id="trackbar"></div></div>
   </div>
   <div class="mapview" id="mapview"><div class="mapinner" id="mapinner"><img class="mapbg" id="mapbg" alt="" draggable="false"><div id="mapmarks"></div></div>
-    <div class="mapzoom"><button type="button" class="iconbtn" id="mzin" aria-label="${t.zoom_in}">+</button><button type="button" class="iconbtn" id="mzout" aria-label="${t.zoom_out}">−</button><button type="button" class="iconbtn" id="mzreset" aria-label="${t.reset}">⟲</button></div>
+    <div class="mapzoom"><button type="button" class="iconbtn" id="mzfs" aria-label="${FR()?"Plein écran":"Full screen"}" title="${FR()?"Plein écran":"Full screen"}">⛶</button><button type="button" class="iconbtn" id="mzin" aria-label="${t.zoom_in}">+</button><button type="button" class="iconbtn" id="mzout" aria-label="${t.zoom_out}">−</button><button type="button" class="iconbtn" id="mzreset" aria-label="${t.reset}">⟲</button></div>
     <div class="mappop" id="mappop" hidden></div></div>`;
   const v=document.getElementById("view");
   wireSegs(v,()=>{state.wz=1;state.wx=null;renderCartes();});
   v.querySelectorAll("[data-wbg]").forEach(b=>b.onclick=()=>{state.wbg=b.dataset.wbg;v.querySelectorAll("[data-wbg]").forEach(x=>x.setAttribute("aria-pressed",x===b));setBg();});
   v.querySelectorAll("[data-wg]").forEach(b=>b.onclick=()=>{state.wgroups[b.dataset.wg]=!state.wgroups[b.dataset.wg];b.setAttribute("aria-pressed",!!state.wgroups[b.dataset.wg]);drawMarks();});
-  setBg();drawMarks();initMapPan();
+  setBg();drawMarks();initMapPan();drawTrackbar();
 }
+function drawTrackbar(){const M=WMAPS[state.wm],fr=FR(),box=document.getElementById("trackbar");if(!box)return;
+  const caves=M.groups.find(g=>g[0]==="Caves"),dovs=M.groups.find(g=>g[0]==="DOVs");
+  const mined=caves?caves[3].filter(m=>trk(state.wm,"Caves",m[2])).length:0;
+  const known=dovs?dovs[3].filter(m=>trk(state.wm,"DOVs",m[2])?.ore).length:0,drills=dovs?dovs[3].filter(m=>trk(state.wm,"DOVs",m[2])?.drill).length:0;
+  box.innerHTML=`${caves?`<span class="tstat">⛏ ${fr?"Grottes minées":"Caves mined"} <b>${mined}/${caves[3].length}</b></span>`:""}
+   ${dovs?`<span class="tstat">◆ ${fr?"Filons renseignés":"Veins identified"} <b>${known}/${dovs[3].length}</b></span><span class="tstat">⚙ ${fr?"Foreuses posées":"Drills placed"} <b>${drills}</b></span>`:""}
+   <label class="tchk"><input type="checkbox" id="hideMined" ${state.hideMined?"checked":""}> ${fr?"Masquer les grottes minées":"Hide mined caves"}</label>`;
+  box.querySelector("#hideMined").onchange=e=>{state.hideMined=e.target.checked;drawMarks();};}
 function setBg(){const M=WMAPS[state.wm];const f=state.wbg==="base"?M.bg:(M.layers.find(l=>l[0]===state.wbg)||[,M.bg])[1];document.getElementById("mapbg").src=IMG_BASE+encodeURI(f);}
 function drawMarks(){const M=WMAPS[state.wm],W=M.br[0]-M.tl[0],H=M.br[1]-M.tl[1];
   let h="";for(const g of M.groups){if(!state.wgroups[g[0]])continue;
     for(let i=0;i<g[3].length;i++){const m=g[3][i];const x=(m[0]-M.tl[0])/W*100,y=(m[1]-M.tl[1])/H*100;
-      h+=`<button type="button" class="mk mk-${g[0]}" style="left:${x}%;top:${y}%;--mc:${MGROUP_COLOR[g[0]]||"#888"}" data-g="${g[0]}" data-i="${i}" aria-label="${esc(m[2])}">${g[2]?`<img src="${IMG_BASE}${encodeURI(g[2])}" alt="" draggable="false">`:""}</button>`;}}
+      const tr=trk(state.wm,g[0],m[2]);let cls="",col=MGROUP_COLOR[g[0]]||"#888",inner=g[2]?`<img src="${IMG_BASE}${encodeURI(g[2])}" alt="" draggable="false">`:"";
+      if(g[0]==="Caves"&&tr){if(state.hideMined)continue;cls=" mined";inner+=`<em>✓</em>`;}
+      if(g[0]==="DOVs"&&tr){if(tr.ore){col=oreColor(tr.ore);cls+=" known";inner="";}if(tr.drill){cls+=" drill";inner+=`<em>⚙</em>`;}}
+      h+=`<button type="button" class="mk mk-${g[0]}${cls}" style="left:${x}%;top:${y}%;--mc:${col}" data-g="${g[0]}" data-i="${i}" aria-label="${esc(m[2])}">${inner}</button>`;}}
   const box=document.getElementById("mapmarks");box.innerHTML=h;
   box.querySelectorAll(".mk").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showPop(b.dataset.g,+b.dataset.i,b);});}
 function showPop(gk,i,el){const M=WMAPS[state.wm],g=M.groups.find(x=>x[0]===gk),m=g[3][i],pop=document.getElementById("mappop");
-  pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button><b>${esc(MGROUP_L[prefs.lang][gk]||g[1])}</b><span class="exs">${esc(m[2])}</span><p>${esc(mdesc(gk,m[3])).replace(/• /g,"<br>• ").replace(/^<br>/,"")}</p>`;
-  pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};}
+  const fr=FR(),tr=trk(state.wm,gk,m[2]);let form="";
+  if(gk==="Caves")form=`<label class="tchk big"><input type="checkbox" id="tkMined" ${tr?"checked":""}> ${fr?"Grotte minée":"Cave mined"}</label>`;
+  if(gk==="DOVs")form=`<label class="tsel">${fr?"Minerai du filon":"Vein ore"}<select id="tkOre"><option value="">${fr?"— Inconnu —":"— Unknown —"}</option>${DOV_ORES.map(o=>`<option value="${o[0]}" ${tr?.ore===o[0]?"selected":""}>${esc(oreLabel(o[0]))}</option>`).join("")}</select></label>
+    <label class="tchk big"><input type="checkbox" id="tkDrill" ${tr?.drill?"checked":""}> ${fr?"Foreuse de minage profond posée":"Deep-mining drill placed"}</label>`;
+  pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button><b>${esc(MGROUP_L[prefs.lang][gk]||g[1])}</b><span class="exs">${esc(m[2])}</span><p>${esc(mdesc(gk,m[3])).replace(/• /g,"<br>• ").replace(/^<br>/,"")}</p>${form}`;
+  pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};
+  const upd=()=>{drawMarks();drawTrackbar();};
+  pop.querySelector("#tkMined")?.addEventListener("change",e=>{setTrk(state.wm,"Caves",m[2],e.target.checked?true:null);upd();});
+  const saveDov=()=>{const ore=pop.querySelector("#tkOre").value,drill=pop.querySelector("#tkDrill").checked;const v={};if(ore)v.ore=ore;if(drill)v.drill=true;setTrk(state.wm,"DOVs",m[2],v);upd();};
+  pop.querySelector("#tkOre")?.addEventListener("change",saveDov);pop.querySelector("#tkDrill")?.addEventListener("change",saveDov);}
 let mapMoved=false;
 function initMapPan(){
   const vp=document.getElementById("mapview"),inner=document.getElementById("mapinner");
@@ -60,6 +91,14 @@ function initMapPan(){
   document.getElementById("mzin").onclick=()=>zoomAt(state.wz*1.4,vp.clientWidth/2,vp.clientHeight/2);
   document.getElementById("mzout").onclick=()=>zoomAt(state.wz/1.4,vp.clientWidth/2,vp.clientHeight/2);
   document.getElementById("mzreset").onclick=()=>{state.wz=1;center();apply();};
+  // Plein écran : API native quand elle existe (PC, Android), sinon plein écran « fenêtre » en CSS (iPhone)
+  const refit=()=>setTimeout(()=>{state.wz=Math.max(1,state.wz);center();apply();},60);
+  document.getElementById("mzfs").onclick=async()=>{
+    const on=!vp.classList.contains("mapfs");vp.classList.toggle("mapfs",on);document.body.classList.toggle("noscroll",on);
+    try{if(on&&vp.requestFullscreen&&!document.fullscreenElement)await vp.requestFullscreen();else if(!on&&document.fullscreenElement)await document.exitFullscreen();}catch(e){}
+    refit();};
+  vp.addEventListener("fullscreenchange",()=>{if(!document.fullscreenElement&&vp.classList.contains("mapfs")){vp.classList.remove("mapfs");document.body.classList.remove("noscroll");}refit();});
+  window.onresize=()=>{if(document.body.contains(vp))refit();};
   const pts=new Map();let start=null;
   vp.addEventListener("pointerdown",e=>{if(e.target.closest(".mapzoom,.mappop"))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});mapMoved=false;
     if(pts.size===1)start={x:e.clientX,y:e.clientY,wx:state.wx,wy:state.wy};
