@@ -71,7 +71,7 @@ function applyTheme(){const r=document.documentElement;if(prefs.theme==="auto")d
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);};
 const CRAFT_ACCENT=["#2f7a6e","#d6ece8","#7fd1c2","#173430"];
 const TREE_ACCENT=["#7a4fa0","#ebe0f4","#c4a3ea","#2c2140"],GUIDE_ACCENT=["#a0601f","#f3e4d2","#e8a868","#3a2716"];
-function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:k==="montures"?["#8a5a2b","#f1e4d6","#e0a86e","#36261a"]:k==="poissons"?["#2a6f97","#d7e9f4","#7cc0e8","#15303f"]:k==="cartes"?["#4a6b2f","#e0ecd4","#a6d07c","#1f2e14"]:k==="save"?["#8a2f4a","#f3dde4","#e88aa6","#3a1620"]:k==="nourriture"?["#9a4a1c","#f5e2d4","#f0a070","#3a1f10"]:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
+function accentOf(k){const a=k==="accueil"?["#3f6f7a","#dbe9ec","#7cc0cf","#16292e"]:k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:k==="montures"?["#8a5a2b","#f1e4d6","#e0a86e","#36261a"]:k==="poissons"?["#2a6f97","#d7e9f4","#7cc0e8","#15303f"]:k==="cartes"?["#4a6b2f","#e0ecd4","#a6d07c","#1f2e14"]:k==="save"?["#8a2f4a","#f3dde4","#e88aa6","#3a1620"]:k==="nourriture"?["#9a4a1c","#f5e2d4","#f0a070","#3a1f10"]:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
 function setAccent(){const [m,s]=accentOf(state.view);const r=document.documentElement.style;r.setProperty("--map",m);r.setProperty("--map-soft",s);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=isDark()?"#161c19":"#e4e9e6";}
 
@@ -85,16 +85,17 @@ const TAB_ICONS={best:`<svg viewBox="0 0 24 24" width="20" height="20" fill="non
  crafts:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-3 3-6-6zM11 7l-7 7 3 3 7-7"/><path d="M4 20h7"/></svg>`};
 function renderChrome(){
   const t=T();
-  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":k==="montures"?MOUNTS.length:k==="poissons"?FISH.length:k==="cartes"?"":k==="save"?"":k==="nourriture"?FOODS.length:C.filter(c=>c[9][k]!==undefined).length;
-  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:k==="montures"?t.mounts:k==="poissons"?t.fish:k==="cartes"?t.maps:k==="save"?"Save Manager":k==="nourriture"?t.food:mapName(k);
+  const count=k=>k==="accueil"?"":k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":k==="montures"?MOUNTS.length:k==="poissons"?FISH.length:k==="cartes"?"":k==="save"?"":k==="nourriture"?FOODS.length:C.filter(c=>c[9][k]!==undefined).length;
+  const label=k=>k==="accueil"?(FR()?"Accueil":"Home"):k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:k==="montures"?t.mounts:k==="poissons"?t.fish:k==="cartes"?t.maps:k==="save"?"Save Manager":k==="nourriture"?t.food:mapName(k);
   const link=k=>`<a class="navlink" href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}><span class="dot"></span>${label(k)}<span class="ct">${count(k)}</span></a>`;
   document.getElementById("sidebar").innerHTML=`
-    <p class="brand"><small>${t.brand_small}</small>${t.brand}</p>
+    <a class="brand brandlink" href="#accueil"><small>${t.brand_small}</small>${t.brand}</a>
+    <nav class="navgroup">${link("accueil")}</nav>
     <nav class="navgroup" aria-label="${t.regions}"><h2>${t.regions}</h2>${REGIONS.map(link).join("")}${link("ferme")}</nav>
     <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["cartes","montures","poissons","nourriture","objets","crafts","arbres","guide","save"].map(link).join("")}</nav>
     <button class="navlink setbtn" type="button" data-settings>${GEAR}<span>${t.settings}</span></button>
     <div class="sidefoot">${t.sources}</div>`;
-  document.getElementById("mtop").innerHTML=`<p class="brand">${t.brand}</p><button class="iconbtn" type="button" data-settings aria-label="${t.settings}">${GEAR}</button>`;
+  document.getElementById("mtop").innerHTML=`<a class="brand brandlink" href="#accueil">${t.brand}</a><button class="iconbtn" type="button" data-settings aria-label="${t.settings}">${GEAR}</button>`;
   const inBest=MAPS[state.view]!==undefined||state.view==="montures"||state.view==="poissons"||state.view==="cartes";
   document.getElementById("tabbar").innerHTML=`
     <a href="#${state.lastRegion}" ${inBest?'aria-current="page"':""}>${TAB_ICONS.best}<span>${t.bestiary}</span></a>
@@ -286,6 +287,7 @@ function drawSheet(){const e=state.stack[state.stack.length-1];const body=docume
   body.querySelectorAll("[data-goc]").forEach(b=>b.onclick=()=>openSheet({type:"c",id:b.dataset.goc}));
   body.querySelectorAll("[data-goi]").forEach(b=>b.onclick=()=>openSheet({type:"i",id:b.dataset.goi}));
   body.querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>openSheet({type:"x",id:+b.dataset.x}));
+  body.querySelectorAll("[data-spawn]").forEach(b=>b.onclick=()=>showOnMap(b.dataset.spawn,b.dataset.n));
   body.querySelectorAll("a[href^='#']").forEach(a=>a.addEventListener("click",closeSheet));
 }
 
@@ -300,7 +302,8 @@ function drawCreature(body,c){const t=T();const [n,b,d,tm,hp,wk,rs,x,,maps]=c;co
   <div class="kv"><div><span>${t.hp}</span><strong>${hp?hp.toLocaleString(prefs.lang):t.nc}</strong></div><div><span>${t.diet}</span><strong>${d==="C"?t.carn:t.herb}</strong></div><div><span>${t.taming}</span><strong style="color:var(--tame)">${tame(tm)||t.no}</strong></div></div>
   <div class="sec"><h3>${t.combat}</h3><dl class="ws"><dt>${t.weak}</dt><dd class="wk">${esc(trait(wk))}</dd><dt>${t.resist}</dt><dd>${esc(trait(rs))}</dd><dt>${t.traits}</dt><dd>${esc(trait(x))}</dd></dl></div>
   <div class="sec"><h3>${kd==="faune"||kd==="ferme"?t.loot_knife:t.loot}</h3>${loot.length?`<table class="loot"><thead><tr><th>${t.item}</th><th class="num">${t.qty}</th><th class="num">${t.chance}</th></tr></thead><tbody>${loot.map(r=>`<tr><td><button class="linkbtn" type="button" data-goi="${esc(r.item)}">${lootIcon(r.item)}${esc(r.tx?(FR()?"Vestige : "+cname(n):n+" Vestige"):iname(r.item))}</button></td><td class="num">${r.qty}</td><td class="num">${r.ch} %<span class="chance"><i style="width:${r.ch}%"></i></span></td></tr>`).join("")}</tbody></table>${loot.some(r=>r.tx)?`<p class="ext" style="margin:6px 0 0">${vnote}</p>`:""}`:`<p class="ext" style="margin:0">${t.not_doc}</p>`}</div>
-  <div class="sec"><h3>${t.where}</h3><div class="maprow">${Object.keys(maps).map(k=>{const zi=zonesOf(c,k);return `<div class="mapcard"><a href="#${k}" style="--c:${accentOf(k)[0]}"><i></i>${mapName(k)}</a><p>${zi.z.length?zi.z.map(zl).join(" · "):t.zone_unk}${zi.b.length?"<br>"+esc(zi.b.map(bioName).join(", ")):""}</p></div>`}).join("")}</div></div>
+  ${typeof spawnMiniMaps==="function"?spawnMiniMaps(n):""}
+  <div class="sec"><h3>${t.where}</h3><div class="maprow">${Object.keys(maps).map(k=>{const zi=zonesOf(c,k);return `<div class="mapcard"><a href="#${k}" style="--c:${accentOf(k)[0]}"><i></i>${mapName(k)}</a><p>${zi.z.length?zi.z.map(zl).join(" · "):t.zone_unk}${zi.b.length?"<br>"+esc(zi.b.map(bioName).join(", ")):""}</p>${typeof spawnZonesFor==="function"&&REGIONS.includes(k)?(()=>{const sz=spawnZonesFor(k,n);return `<button type="button" class="more spawnbtn" data-spawn="${k}" data-n="${esc(n)}">📍 ${sz&&sz.length?(FR()?`Voir ses ${sz.length} zones sur la carte`:`Show its ${sz.length} zones on the map`):(FR()?"Voir la carte des apparitions":"Open the spawn map")}</button>`;})():""}</div>`}).join("")}</div></div>
   ${typeof creatureExtra==="function"?creatureExtra(n):""}
   <a class="ext" href="${wiki(n)}" target="_blank" rel="noopener">${t.wiki}</a>`;
 }
@@ -365,7 +368,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape"&&sheet.classList.contains("on
 
 /* ---------- Routage ---------- */
 const VIEWS={objets:()=>renderCatalog(),crafts:()=>renderCrafts(),arbres:()=>renderTrees(),guide:()=>renderGuide()};
-function route(keep){const h=location.hash.slice(1);const v=MAPS[h]||VIEWS[h]?h:"olympus";
+function route(keep){const h=location.hash.slice(1);const v=MAPS[h]||VIEWS[h]?h:(VIEWS.accueil?"accueil":"olympus");
   if(v!==state.view&&!keep)state.zone="all";state.view=v;if(MAPS[v])state.lastRegion=v;setAccent();renderChrome();
   VIEWS[v]?VIEWS[v]():renderMap();}
 addEventListener("hashchange",()=>{if(sheet.classList.contains("on"))closeSheet();state.zone="all";route();scrollTo({top:0});});
