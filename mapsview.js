@@ -160,18 +160,26 @@ function drawMarks(){const M=WMAPS[state.wm],W=M.br[0]-M.tl[0],H=M.br[1]-M.tl[1]
   if(zs)zs.forEach((z,zi)=>z.pts.forEach(p=>{h+=`<button type="button" class="mk mk-spawn" style="left:${p[0]}%;top:${p[1]}%" data-zone="${zi}" aria-label="${esc(zoneLabel(z.z))}"><span>${z.pct===null?"✓":z.pct+"%"}</span></button>`;}));
   const box=document.getElementById("mapmarks");box.innerHTML=h;box.classList.toggle("orefilter",!!(state.wore&&prosHere()));box.classList.toggle("spawnfocus",!!(zs&&zs.length));
   box.querySelectorAll(".mk[data-g]").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showPop(b.dataset.g,+b.dataset.i,b);});
-  box.querySelectorAll(".mk[data-cave]").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showCavePop(+b.dataset.cave);});
-  box.querySelectorAll(".mk[data-zone]").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showZonePop(zs[+b.dataset.zone]);});}
-function popShell(html){const pop=document.getElementById("mappop");pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button>${html}`;pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};return pop;}
-function showCavePop(j){const d=PROS.deps[j],fr=FR(),cave=!!d[3];
+  box.querySelectorAll(".mk[data-cave]").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showCavePop(+b.dataset.cave,b);});
+  box.querySelectorAll(".mk[data-zone]").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showZonePop(zs[+b.dataset.zone],b);});}
+function popShell(html,el){const pop=document.getElementById("mappop");pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button>${html}`;pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};placePop(pop,el);return pop;}
+// Place la fiche à côté du marqueur touché (à droite si la place le permet, sinon à gauche ; jamais hors de la carte)
+function placePop(pop,el){const vp=document.getElementById("mapview");if(!el||!vp){pop.style.left="10px";pop.style.top="";pop.style.bottom="10px";return;}
+  pop.style.bottom="auto";pop.style.left="0px";pop.style.top="0px";pop.dataset.side="";
+  const V=vp.getBoundingClientRect(),M=el.getBoundingClientRect(),P=pop.getBoundingClientRect(),gap=12,pad=8;
+  const mx=M.left-V.left+M.width/2,my=M.top-V.top+M.height/2;let x,side;
+  if(mx+gap+P.width<=V.width-pad){x=mx+gap;side="r";}else if(mx-gap-P.width>=pad){x=mx-gap-P.width;side="l";}else{x=Math.max(pad,Math.min(V.width-P.width-pad,mx-P.width/2));side="c";}
+  let y=side==="c"?(my+gap+P.height<=V.height-pad?my+gap:my-gap-P.height):my-P.height/2;
+  y=Math.max(pad,Math.min(V.height-P.height-pad,y));pop.style.left=Math.round(x)+"px";pop.style.top=Math.round(y)+"px";pop.dataset.side=side;}
+function showCavePop(j,el){const d=PROS.deps[j],fr=FR(),cave=!!d[3];
   popShell(`<b>${cave?(fr?"Filon profond en grotte":"Deep ore vein in a cave"):(fr?"Filon de minerai profond":"Deep ore vein")}</b><span class="exs">${esc(PROS.name)}</span>
    <div class="savebadge">${oreIcon(d[2])}<span>${fr?"Minerai d'après ta sauvegarde":"Ore from your save"}<br><b>${esc(oreLabel(d[2]))}</b></span></div>
-   <p>${cave?(fr?"Il se trouve à l'intérieur d'une grotte : entrez par la grotte la plus proche. Il faut une foreuse de minage profond pour l'exploiter.":"It's inside a cave: go in through the nearest cave. A deep-mining drill is needed to mine it."):(fr?"Ce filon est dans ta sauvegarde mais pas sur les cartes du wiki. Il faut une foreuse de minage profond pour l'exploiter.":"This vein is in your save but not on the wiki maps. A deep-mining drill is needed to mine it.")}</p>`);}
-function showZonePop(z){const fr=FR(),n=state.wfocus,base=SPAWN_ALIAS[n]||n;const mobs=SPAWNZ[state.wm].find(x=>x[0]===z.z)[3];
+   <p>${cave?(fr?"Il se trouve à l'intérieur d'une grotte : entrez par la grotte la plus proche. Il faut une foreuse de minage profond pour l'exploiter.":"It's inside a cave: go in through the nearest cave. A deep-mining drill is needed to mine it."):(fr?"Ce filon est dans ta sauvegarde mais pas sur les cartes du wiki. Il faut une foreuse de minage profond pour l'exploiter.":"This vein is in your save but not on the wiki maps. A deep-mining drill is needed to mine it.")}</p>`,el);}
+function showZonePop(z,el){const fr=FR(),n=state.wfocus,base=SPAWN_ALIAS[n]||n;const mobs=SPAWNZ[state.wm].find(x=>x[0]===z.z)[3];
   const pop=popShell(`<b>${esc(zoneLabel(z.z))}</b><span class="exs">${esc(z.z)} · ${fr?"niveau":"level"} ${z.lv}</span>
    <p>${z.pct===null?(fr?`${esc(cname(n))} est présent dans cette zone.`:`${esc(cname(n))} is present in this zone.`):(fr?`${esc(cname(base))} : <b>${z.pct} %</b> des apparitions de la zone.`:`${esc(cname(base))}: <b>${z.pct}%</b> of the zone's spawns.`)}</p>
    <div class="tsel">${fr?"Toutes les créatures de la zone":"Every creature in the zone"}</div>
-   <div class="zonelist">${Object.entries(mobs).map(([m,p])=>`<button type="button" class="linkbtn" data-zc="${esc(m)}" ${m===base?'aria-current="true"':""}>${byName[m]?imgTag(creImg(m),"mini-img",""):""}${esc(byName[m]?cname(m):m)} <span class="exs">${p} %</span></button>`).join("")}</div>`);
+   <div class="zonelist">${Object.entries(mobs).map(([m,p])=>`<button type="button" class="linkbtn" data-zc="${esc(m)}" ${m===base?'aria-current="true"':""}>${byName[m]?imgTag(creImg(m),"mini-img",""):""}${esc(byName[m]?cname(m):m)} <span class="exs">${p} %</span></button>`).join("")}</div>`,el);
   pop.querySelectorAll("[data-zc]").forEach(b=>b.onclick=()=>{if(byName[b.dataset.zc]){state.wfocus=b.dataset.zc;renderCartes();}});}
 function showPop(gk,i,el){const M=WMAPS[state.wm],g=M.groups.find(x=>x[0]===gk),m=g[3][i],pop=document.getElementById("mappop");
   const fr=FR(),tr=trk(state.wm,gk,m[2]);let form="";
@@ -183,7 +191,7 @@ function showPop(gk,i,el){const M=WMAPS[state.wm],g=M.groups.find(x=>x[0]===gk),
     <div class="tsel">${fr?"Foreuse posée":"Drill placed"}</div>
     <div class="oregrid drills"><button type="button" class="orebtn" data-drill="" aria-pressed="${!curDrill}"><span class="pic"><span class="glyph" style="--g:var(--soft);color:var(--muted)">—</span></span><span>${fr?"Aucune":"None"}</span></button>${DRILLS.map(d=>`<button type="button" class="orebtn" data-drill="${d[0]}" aria-pressed="${curDrill===d[0]}">${imgTag(d[2],"",`<span class="glyph" style="--g:var(--map)">⚙</span>`)}<span>${esc(drillLabel(d[0]))}</span></button>`).join("")}</div>`;
   pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button><b>${esc(MGROUP_L[prefs.lang][gk]||g[1])}</b><span class="exs">${esc(m[2])}</span><p>${esc(mdesc(gk,m[3])).replace(/• /g,"<br>• ").replace(/^<br>/,"")}</p>${form}`;
-  pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};
+  pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};placePop(pop,el);
   const upd=()=>{drawMarks();drawTrackbar();};
   pop.querySelector("#tkMined")?.addEventListener("change",e=>{setTrk(state.wm,"Caves",m[2],e.target.checked?true:null);upd();});
   if(gk==="DOVs"){let ore=tr?.ore||"",drill=curDrill||"";
@@ -197,7 +205,7 @@ function initMapPan(){
   const apply=()=>{const s=base()*state.wz;inner.style.width=inner.style.height=s+"px";inner.style.transform=`translate(${state.wx}px,${state.wy}px)`;vp.style.setProperty("--mz",state.wz);};
   const center=()=>{state.wx=(vp.clientWidth-base()*state.wz)/2;state.wy=(vp.clientHeight-base()*state.wz)/2;};
   if(state.wx===null)center();apply();
-  const zoomAt=(nz,cx,cy)=>{nz=Math.max(1,Math.min(10,nz));const s=base()*state.wz,ns=base()*nz;const px=(cx-state.wx)/s,py=(cy-state.wy)/s;state.wz=nz;state.wx=cx-px*ns;state.wy=cy-py*ns;apply();};
+  const zoomAt=(nz,cx,cy)=>{const pp=document.getElementById("mappop");if(pp)pp.hidden=true;nz=Math.max(1,Math.min(10,nz));const s=base()*state.wz,ns=base()*nz;const px=(cx-state.wx)/s,py=(cy-state.wy)/s;state.wz=nz;state.wx=cx-px*ns;state.wy=cy-py*ns;apply();};
   vp.addEventListener("wheel",e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(state.wz*(e.deltaY<0?1.2:1/1.2),e.clientX-r.left,e.clientY-r.top);},{passive:false});
   document.getElementById("mzin").onclick=()=>zoomAt(state.wz*1.4,vp.clientWidth/2,vp.clientHeight/2);
   document.getElementById("mzout").onclick=()=>zoomAt(state.wz/1.4,vp.clientWidth/2,vp.clientHeight/2);
@@ -215,7 +223,7 @@ function initMapPan(){
     if(pts.size===1)start={x:e.clientX,y:e.clientY,wx:state.wx,wy:state.wy};
     if(pts.size===2){const [a,b]=[...pts.values()];start={d:Math.hypot(a.x-b.x,a.y-b.y),z:state.wz};}});
   mapMoveHandler=e=>{if(!pts.has(e.pointerId)||!document.body.contains(vp))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
-    if(pts.size===1&&start&&start.wx!==undefined){const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.abs(dx)+Math.abs(dy)>4){mapMoved=true;vp.classList.add("grabbing");}state.wx=start.wx+dx;state.wy=start.wy+dy;apply();}
+    if(pts.size===1&&start&&start.wx!==undefined){const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.abs(dx)+Math.abs(dy)>4){mapMoved=true;vp.classList.add("grabbing");const pp=document.getElementById("mappop");if(pp)pp.hidden=true;}state.wx=start.wx+dx;state.wy=start.wy+dy;apply();}
     else if(pts.size===2&&start&&start.d){const [a,b]=[...pts.values()];const r=vp.getBoundingClientRect();mapMoved=true;zoomAt(start.z*Math.hypot(a.x-b.x,a.y-b.y)/start.d,(a.x+b.x)/2-r.left,(a.y+b.y)/2-r.top);}};
   mapEndHandler=e=>{if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);vp.classList.remove("grabbing");if(pts.size===1){const p=[...pts.values()][0];start={x:p.x,y:p.y,wx:state.wx,wy:state.wy};}else if(!pts.size){start=null;setTimeout(()=>{mapMoved=false;},0);}};
 }
