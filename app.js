@@ -71,7 +71,7 @@ function applyTheme(){const r=document.documentElement;if(prefs.theme==="auto")d
 const isDark=()=>{const t=document.documentElement.dataset.theme;return t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches);};
 const CRAFT_ACCENT=["#2f7a6e","#d6ece8","#7fd1c2","#173430"];
 const TREE_ACCENT=["#7a4fa0","#ebe0f4","#c4a3ea","#2c2140"],GUIDE_ACCENT=["#a0601f","#f3e4d2","#e8a868","#3a2716"];
-function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:k==="montures"?["#8a5a2b","#f1e4d6","#e0a86e","#36261a"]:k==="poissons"?["#2a6f97","#d7e9f4","#7cc0e8","#15303f"]:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
+function accentOf(k){const a=k==="objets"?IDX_ACCENT:k==="crafts"?CRAFT_ACCENT:k==="arbres"?TREE_ACCENT:k==="guide"?GUIDE_ACCENT:k==="montures"?["#8a5a2b","#f1e4d6","#e0a86e","#36261a"]:k==="poissons"?["#2a6f97","#d7e9f4","#7cc0e8","#15303f"]:k==="cartes"?["#4a6b2f","#e0ecd4","#a6d07c","#1f2e14"]:MAPS[k].accent;return isDark()?[a[2],a[3]]:[a[0],a[1]];}
 function setAccent(){const [m,s]=accentOf(state.view);const r=document.documentElement.style;r.setProperty("--map",m);r.setProperty("--map-soft",s);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.content=isDark()?"#161c19":"#e4e9e6";}
 
@@ -85,17 +85,17 @@ const TAB_ICONS={best:`<svg viewBox="0 0 24 24" width="20" height="20" fill="non
  crafts:`<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l6 6-3 3-6-6zM11 7l-7 7 3 3 7-7"/><path d="M4 20h7"/></svg>`};
 function renderChrome(){
   const t=T();
-  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":k==="montures"?MOUNTS.length:k==="poissons"?FISH.length:C.filter(c=>c[9][k]!==undefined).length;
-  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:k==="montures"?t.mounts:k==="poissons"?t.fish:mapName(k);
+  const count=k=>k==="objets"?ITEMS.length:k==="crafts"?REC.length:k==="arbres"?TREES.length:k==="guide"?"":k==="montures"?MOUNTS.length:k==="poissons"?FISH.length:k==="cartes"?"":C.filter(c=>c[9][k]!==undefined).length;
+  const label=k=>k==="objets"?t.objects:k==="crafts"?t.crafts:k==="arbres"?t.trees:k==="guide"?t.guide:k==="montures"?t.mounts:k==="poissons"?t.fish:k==="cartes"?t.maps:mapName(k);
   const link=k=>`<a class="navlink" href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}><span class="dot"></span>${label(k)}<span class="ct">${count(k)}</span></a>`;
   document.getElementById("sidebar").innerHTML=`
     <p class="brand"><small>${t.brand_small}</small>${t.brand}</p>
     <nav class="navgroup" aria-label="${t.regions}"><h2>${t.regions}</h2>${REGIONS.map(link).join("")}${link("ferme")}</nav>
-    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["montures","poissons","objets","crafts","arbres","guide"].map(link).join("")}</nav>
+    <nav class="navgroup" aria-label="${t.index}"><h2>${t.index}</h2>${["cartes","montures","poissons","objets","crafts","arbres","guide"].map(link).join("")}</nav>
     <button class="navlink setbtn" type="button" data-settings>${GEAR}<span>${t.settings}</span></button>
     <div class="sidefoot">${t.sources}</div>`;
   document.getElementById("mtop").innerHTML=`<p class="brand">${t.brand}</p><button class="iconbtn" type="button" data-settings aria-label="${t.settings}">${GEAR}</button>`;
-  const inBest=MAPS[state.view]!==undefined||state.view==="montures"||state.view==="poissons";
+  const inBest=MAPS[state.view]!==undefined||state.view==="montures"||state.view==="poissons"||state.view==="cartes";
   document.getElementById("tabbar").innerHTML=`
     <a href="#${state.lastRegion}" ${inBest?'aria-current="page"':""}>${TAB_ICONS.best}<span>${t.bestiary}</span></a>
     <a href="#objets" ${state.view==="objets"?'aria-current="page"':""}>${TAB_ICONS.objets}<span>${t.objects}</span></a>
@@ -111,7 +111,7 @@ function renderChrome(){
 const SEARCH_ICON=`<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="7" cy="7" r="4.8"/><path d="m10.6 10.6 3.4 3.4"/></svg>`;
 function seg(key,opts,cls){return `<div class="seg ${cls||""}" role="group">${opts.map(([v,l])=>`<button type="button" data-k="${key}" data-v="${v}" aria-pressed="${state[key]===v}">${l}</button>`).join("")}</div>`;}
 function wireSegs(root,after){root.querySelectorAll(".seg button[data-k]").forEach(b=>b.onclick=()=>{state[b.dataset.k]=b.dataset.v;b.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===b));after();});}
-const regionSwitch=()=>`<nav class="regionsw" aria-label="${T().regions}">${[...REGIONS,"ferme","montures","poissons"].map(k=>`<a href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}>${k==="montures"?T().mounts:k==="poissons"?T().fish:mapName(k)}</a>`).join("")}</nav>`;
+const regionSwitch=()=>`<nav class="regionsw" aria-label="${T().regions}">${[...REGIONS,"ferme","cartes","montures","poissons"].map(k=>`<a href="#${k}" style="--c:${accentOf(k)[0]}" ${k===state.view?'aria-current="page"':""}>${k==="montures"?T().mounts:k==="poissons"?T().fish:k==="cartes"?T().maps:mapName(k)}</a>`).join("")}</nav>`;
 
 /* ---------- Vue région ---------- */
 function renderMap(){
