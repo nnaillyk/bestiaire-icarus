@@ -27,6 +27,12 @@ function setTrk(map,g,id,val){((TRACK[map]??={})[g]??={});if(val===null||val===u
 const DOV_ORES=[["Iron","Iron Ore","#b5651d"],["Copper","Copper Ore","#d17a3a"],["Gold","Gold Ore","#e6c229"],["Platinum","Platinum Ore","#cfd8dc"],["Titanium","Titanium Ore","#8fa3b8"],["Aluminium","Aluminium Ore","#a9b4c2"],["Silicon","Silica Ore","#e8e2c8"],["Coal","Coal Ore","#333333"],["Sulfur","Sulfur","#e3d23b"],["Oxite","Oxite","#f0f4f7"],["Salt","Salt","#f7f1e3"],["Stone","Stone","#8a8a8a"],["Clay","Clay","#b0704a"],["Scoria","Scoria","#7a3b2e"],["Obsidian","Obsidian","#2a1f3d"],["Limestone","Limestone","#d8cfb0"],["Super_Cooled_Ice","Super Cooled Ice","#7fd3f0"],["Exotic","Exotics","#9b59d0"],["Exotic_Red_Raw","Volatile Raw Exotics","#d0453a"],["Exotic_Raw_Uranium","Raw Uranium","#7ac943"],["Lithium","Lithium Ore","#c7a6e0"],["Cobalt","Cobalt Ore","#3a5fcd"],["Ruby","Ruby","#c2185b"]];
 const oreLabel=o=>{const r=DOV_ORES.find(x=>x[0]===o);if(!r)return o;const i=ITEM_BY_NAME[r[1]];return i!==undefined?xname(i):r[1];};
 const oreColor=o=>(DOV_ORES.find(x=>x[0]===o)||[,,"#8c96a3"])[2];
+const oreIdx=o=>{const r=DOV_ORES.find(x=>x[0]===o);return r?ITEM_BY_NAME[r[1]]:undefined;};
+const oreIcon=o=>{const i=oreIdx(o);return i!==undefined?itemIcon(i):`<span class="pic"><span class="glyph" style="--g:${oreColor(o)}">${esc(oreLabel(o).slice(0,2).toUpperCase())}</span></span>`;};
+// Foreuses de minage profond du jeu
+const DRILLS=[["Deep_Mining_Drill_Biofuel","Biofuel Deep-Mining Drill","ITEM_Deep_Mining_Drill_Biofuel.png"],["Deep_Mining_Drill_Electric","Electric Deep-Mining Drill","ITEM_Deep_Mining_Drill_Electric.png"],["Deep_Mining_Drill_Oil","Oil Deep-Mining Drill","T_ITEM_Deep_Mining_Drill_Oil.png"]];
+const drillIdx=d=>{const r=DRILLS.find(x=>x[0]===d);return r?ITEM_BY_NAME[r[1]]:undefined;};
+const drillLabel=d=>{const i=drillIdx(d);return i!==undefined?xname(i):(FR()?"Foreuse":"Drill");};
 
 function renderCartes(){
   const t=T(),M=WMAPS[state.wm];
@@ -64,21 +70,27 @@ function drawMarks(){const M=WMAPS[state.wm],W=M.br[0]-M.tl[0],H=M.br[1]-M.tl[1]
     for(let i=0;i<g[3].length;i++){const m=g[3][i];const x=(m[0]-M.tl[0])/W*100,y=(m[1]-M.tl[1])/H*100;
       const tr=trk(state.wm,g[0],m[2]);let cls="",col=MGROUP_COLOR[g[0]]||"#888",inner=g[2]?`<img src="${IMG_BASE}${encodeURI(g[2])}" alt="" draggable="false">`:"";
       if(g[0]==="Caves"&&tr){if(state.hideMined)continue;cls=" mined";inner+=`<em>✓</em>`;}
-      if(g[0]==="DOVs"&&tr){if(tr.ore){col=oreColor(tr.ore);cls+=" known";inner="";}if(tr.drill){cls+=" drill";inner+=`<em>⚙</em>`;}}
+      if(g[0]==="DOVs"&&tr){if(tr.ore){col=oreColor(tr.ore);cls+=" known";const oi=oreIdx(tr.ore);inner=oi!==undefined&&ITEMS[oi][4]?`<img src="${IMG_BASE}${encodeURI(ITEMS[oi][4])}" alt="" draggable="false">`:"";}
+        if(tr.drill){cls+=" drill";inner+=`<em>⚙</em>`;}}
       h+=`<button type="button" class="mk mk-${g[0]}${cls}" style="left:${x}%;top:${y}%;--mc:${col}" data-g="${g[0]}" data-i="${i}" aria-label="${esc(m[2])}">${inner}</button>`;}}
   const box=document.getElementById("mapmarks");box.innerHTML=h;
   box.querySelectorAll(".mk").forEach(b=>b.onclick=e=>{if(mapMoved)return;e.stopPropagation();showPop(b.dataset.g,+b.dataset.i,b);});}
 function showPop(gk,i,el){const M=WMAPS[state.wm],g=M.groups.find(x=>x[0]===gk),m=g[3][i],pop=document.getElementById("mappop");
   const fr=FR(),tr=trk(state.wm,gk,m[2]);let form="";
   if(gk==="Caves")form=`<label class="tchk big"><input type="checkbox" id="tkMined" ${tr?"checked":""}> ${fr?"Grotte minée":"Cave mined"}</label>`;
-  if(gk==="DOVs")form=`<label class="tsel">${fr?"Minerai du filon":"Vein ore"}<select id="tkOre"><option value="">${fr?"— Inconnu —":"— Unknown —"}</option>${DOV_ORES.map(o=>`<option value="${o[0]}" ${tr?.ore===o[0]?"selected":""}>${esc(oreLabel(o[0]))}</option>`).join("")}</select></label>
-    <label class="tchk big"><input type="checkbox" id="tkDrill" ${tr?.drill?"checked":""}> ${fr?"Foreuse de minage profond posée":"Deep-mining drill placed"}</label>`;
+  const curDrill=tr?.drill===true?"Deep_Mining_Drill_Biofuel":tr?.drill;
+  if(gk==="DOVs")form=`<div class="tsel">${fr?"Minerai du filon":"Vein ore"}</div>
+    <div class="oregrid" role="radiogroup" aria-label="${fr?"Minerai du filon":"Vein ore"}"><button type="button" class="orebtn" data-ore="" aria-pressed="${!tr?.ore}"><span class="pic"><span class="glyph" style="--g:var(--soft);color:var(--muted)">?</span></span><span>${fr?"Inconnu":"Unknown"}</span></button>${DOV_ORES.map(o=>`<button type="button" class="orebtn" data-ore="${o[0]}" aria-pressed="${tr?.ore===o[0]}">${oreIcon(o[0])}<span>${esc(oreLabel(o[0]))}</span></button>`).join("")}</div>
+    <div class="tsel">${fr?"Foreuse posée":"Drill placed"}</div>
+    <div class="oregrid drills"><button type="button" class="orebtn" data-drill="" aria-pressed="${!curDrill}"><span class="pic"><span class="glyph" style="--g:var(--soft);color:var(--muted)">—</span></span><span>${fr?"Aucune":"None"}</span></button>${DRILLS.map(d=>`<button type="button" class="orebtn" data-drill="${d[0]}" aria-pressed="${curDrill===d[0]}">${imgTag(d[2],"",`<span class="glyph" style="--g:var(--map)">⚙</span>`)}<span>${esc(drillLabel(d[0]))}</span></button>`).join("")}</div>`;
   pop.innerHTML=`<button type="button" class="iconbtn popx" aria-label="${T().close}">✕</button><b>${esc(MGROUP_L[prefs.lang][gk]||g[1])}</b><span class="exs">${esc(m[2])}</span><p>${esc(mdesc(gk,m[3])).replace(/• /g,"<br>• ").replace(/^<br>/,"")}</p>${form}`;
   pop.hidden=false;pop.querySelector(".popx").onclick=()=>{pop.hidden=true;};
   const upd=()=>{drawMarks();drawTrackbar();};
   pop.querySelector("#tkMined")?.addEventListener("change",e=>{setTrk(state.wm,"Caves",m[2],e.target.checked?true:null);upd();});
-  const saveDov=()=>{const ore=pop.querySelector("#tkOre").value,drill=pop.querySelector("#tkDrill").checked;const v={};if(ore)v.ore=ore;if(drill)v.drill=true;setTrk(state.wm,"DOVs",m[2],v);upd();};
-  pop.querySelector("#tkOre")?.addEventListener("change",saveDov);pop.querySelector("#tkDrill")?.addEventListener("change",saveDov);}
+  if(gk==="DOVs"){let ore=tr?.ore||"",drill=curDrill||"";
+    const saveDov=()=>{const v={};if(ore)v.ore=ore;if(drill)v.drill=drill;setTrk(state.wm,"DOVs",m[2],v);upd();};
+    pop.querySelectorAll("[data-ore]").forEach(b=>b.onclick=()=>{ore=b.dataset.ore;pop.querySelectorAll("[data-ore]").forEach(x=>x.setAttribute("aria-pressed",x===b));saveDov();});
+    pop.querySelectorAll("[data-drill]").forEach(b=>b.onclick=()=>{drill=b.dataset.drill;pop.querySelectorAll("[data-drill]").forEach(x=>x.setAttribute("aria-pressed",x===b));saveDov();});}}
 let mapMoved=false;
 function initMapPan(){
   const vp=document.getElementById("mapview"),inner=document.getElementById("mapinner");
