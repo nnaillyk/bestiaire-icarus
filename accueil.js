@@ -120,6 +120,7 @@ function renderHome(){const fr=FR(),t=T(),L=(f,e)=>fr?f:e;
     ${card("#guide",accentOf("guide")[0],L("Débutant","Beginner"),L("Guide du prospecteur","Prospector's guide"),L("Premiers pas, meilleur équipement par étape, ordre des techs et talents conseillés.","First steps, best gear per stage, tech order and recommended talents."),true)}
     ${card("#cartes",accentOf("cartes")[0],L("Cartes","Maps"),L("Gisements et apparitions","Deposits and spawns"),L("Grottes, filons profonds de votre partie, exotiques, et les zones où vit chaque créature.","Caves, your game's deep veins, exotics, and the zones where each creature lives."),true)}
     ${card("#save",accentOf("save")[0],"Save Manager",L("Votre sauvegarde","Your save"),L("Personnage, ressources, talents et inventaires, modifiables directement.","Character, resources, talents and inventories, editable directly."),true)}
+    ${card("#conseil",accentOf("conseil")[0],L("Conseiller IA","AI advisor"),L("Conseils perso","Personal advice"),L("Une IA lit ta sauvegarde et te dit quoi améliorer, quels talents prendre et quoi débloquer.","An AI reads your save and tells you what to improve, which talents to take and what to unlock."),true)}
   </div></section>
   <section class="home-sec"><h2>${t.regions}</h2><div class="home-grid">
     ${[...REGIONS,"ferme"].map(k=>card("#"+k,accentOf(k)[0],MAPS[k].tag,mapName(k),`${C.filter(c=>c[9][k]!==undefined).length} ${L("créatures","creatures")} · ${esc(MAPS[k].size)}`)).join("")}

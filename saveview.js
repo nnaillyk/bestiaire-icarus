@@ -18,20 +18,26 @@ const svMark=k=>{SV.dirty.add(k);drawSaveBar();};
 function alertBox(msg){const b=document.getElementById("svmsg");if(b){b.textContent=msg;b.hidden=false;}}
 
 /* ---------- Chargement : dossier, fichiers ou glisser-déposer ---------- */
+// Les fichiers s'ajoutent à ceux déjà chargés : un fichier du même nom remplace l'ancien, les autres restent.
+SV.added=new Set();
 function svAddText(name,text,handle,isProspect){let obj;try{obj=JSON.parse(text);}catch(e){return;}
-  if(isProspect||obj.ProspectBlob){if(obj.ProspectBlob&&obj.ProspectBlob.BinaryBlob)SV.prospects[name.replace(/\.json$/i,"")]={name,text,obj,handle};return;}
-  const k=Object.keys(SV_FILES).find(k=>SV_FILES[k].toLowerCase()===name.toLowerCase());if(k)SV.files[k]={name,text,obj,handle};}
+  if(isProspect||obj.ProspectBlob){if(obj.ProspectBlob&&obj.ProspectBlob.BinaryBlob){const pn=name.replace(/\.json$/i,"");SV.prospects[pn]={name,text,obj,handle};SV.added.add("p:"+pn);}return;}
+  const k=Object.keys(SV_FILES).find(k=>SV_FILES[k].toLowerCase()===name.toLowerCase());if(k){SV.files[k]={name,text,obj,handle};SV.added.add(k);}}
+function svRemove(key){if(key.startsWith("p:")){delete SV.prospects[key.slice(2)];if(SV.pp&&SV.pp.name===key.slice(2))SV.pp=null;}else{delete SV.files[key];if(key==="characters")SV.chars=null;}
+  SV.dirty.delete(key);if(!Object.keys(SV.files).length&&!Object.keys(SV.prospects).length)SV.dir=null;svRefresh();}
+function svClearAll(){SV.files={};SV.prospects={};SV.dir=null;SV.chars=null;SV.pp=null;SV.dirty=new Set();svRefresh();}
+const svRefresh=()=>{if(location.hash==="#conseil"&&typeof renderConseil==="function")renderConseil();else renderSave();};
 async function svOpenDir(){
   try{let dir=await window.showDirectoryPicker({mode:"readwrite",id:"icarus-save"});
     for(let depth=0;depth<3;depth++){let has=false;try{await dir.getFileHandle("Characters.json");has=true;}catch(e){}
       if(has)break;let sub=null;for await(const [n,h] of dir.entries()){if(h.kind==="directory"&&(/^\d{10,}$/.test(n)||n==="PlayerData")){sub=h;if(/^\d/.test(n))break;}}
       if(!sub)break;dir=sub;}
-    SV.dir=dir;SV.files={};SV.prospects={};
+    SV.dir=dir;SV.added=new Set();
     for(const f of Object.values(SV_FILES)){try{const h=await dir.getFileHandle(f);svAddText(f,await (await h.getFile()).text(),h);}catch(e){}}
     try{const pd=await dir.getDirectoryHandle("Prospects");SV.pdir=pd;for await(const [n,h] of pd.entries()){if(h.kind==="file"&&/\.json$/i.test(n))svAddText(n,await (await h.getFile()).text(),h,true);}}catch(e){}
     svAfterLoad();
   }catch(e){if(e.name!=="AbortError")alertBox(L2("Impossible d'ouvrir ce dossier : ","Could not open this folder: ")+e.message);}}
-async function svOpenFiles(list){SV.dir=null;SV.files={};SV.prospects={};
+async function svOpenFiles(list){SV.added=new Set();
   for(const file of list){const path=(file.webkitRelativePath||file.relPath||file.name).replace(/\\/g,"/");if(!/\.json$/i.test(path))continue;
     if(/\/(Loadout|Logs|Config)\//i.test(path))continue;svAddText(file.name,await file.text(),null,/\/Prospects\//i.test(path));}
   svAfterLoad();}
@@ -41,11 +47,14 @@ async function svDrop(ev){ev.preventDefault();const out=[];
   const items=[...(ev.dataTransfer.items||[])];
   if(items.length&&items[0].webkitGetAsEntry){for(const it of items){const e=it.webkitGetAsEntry();if(e)await walk(e,"/");}}else out.push(...ev.dataTransfer.files);
   await svOpenFiles(out);}
-function svAfterLoad(){
-  if(SV.files.characters){const arr=SV.files.characters.obj["Characters.json"]||[];SV.chars=arr.map(s=>typeof s==="string"?JSON.parse(s):s);SV.ci=0;}
-  SV.dirty=new Set();SV.backedUp=false;SV.pp=null;SV.pname=Object.keys(SV.prospects)[0]||"";
+function svAfterLoad(){const added=SV.added||new Set();
+  // Seuls les fichiers qui viennent d'arriver sont relus : les modifications en cours sur les autres sont gardées
+  if(added.has("characters")||(SV.files.characters&&!SV.chars)){const arr=SV.files.characters.obj["Characters.json"]||[];SV.chars=arr.map(s=>typeof s==="string"?JSON.parse(s):s);SV.ci=0;}
+  for(const k of added){SV.dirty.delete(k);if(k.startsWith("p:")&&SV.pp&&SV.pp.name===k.slice(2))SV.pp=null;}
+  SV.backedUp=false;if(!SV.pname||!SV.prospects[SV.pname])SV.pname=Object.keys(SV.prospects)[0]||"";
   if(!Object.keys(SV.files).length&&!Object.keys(SV.prospects).length)alertBox(L2("Aucun fichier reconnu. Choisissez le dossier de votre SteamID (il contient Characters.json).","No file recognised. Pick your SteamID folder (it contains Characters.json)."));
-  renderSave();}
+  svRefresh();
+  if(added.size&&Object.keys(SV.files).length+Object.keys(SV.prospects).length>added.size)alertBox(L2(`${added.size} fichier(s) ajouté(s). Les fichiers déjà chargés sont gardés.`,`${added.size} file(s) added. Files already loaded are kept.`));}
 
 /* ---------- Prospections : décodage / réencodage ---------- */
 const b64ToU8=b=>{const s=atob(b);const u=new Uint8Array(s.length);for(let i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;};
@@ -79,7 +88,7 @@ async function svSave(){
         const bk=await SV.dir.getDirectoryHandle("_sauvegarde_bestiaire_"+stamp,{create:true});
         for(const f of [...Object.values(SV.files),...Object.values(SV.prospects)]){const h=await bk.getFileHandle(f.name,{create:true});const w=await h.createWritable();await w.write(f.text);await w.close();}
         SV.backedUp="_sauvegarde_bestiaire_"+stamp;}
-      for(const o of Object.values(outs)){const w=await o.file.handle.createWritable();await w.write(o.txt);await w.close();o.file.text=o.txt;}
+      for(const o of Object.values(outs)){if(!o.file.handle){svDownload(o.file.name,o.txt);o.file.text=o.txt;continue;}const w=await o.file.handle.createWritable();await w.write(o.txt);await w.close();o.file.text=o.txt;}
       SV.dirty.clear();if(SV.pp)SV.pp.changed.clear();
       alertBox(L2(`Enregistré dans le jeu. Copie des fichiers d'origine : ${SV.backedUp}`,`Saved to the game. Backup of the original files: ${SV.backedUp}`));
     }catch(e){alertBox(L2("Échec de l'enregistrement : ","Save failed: ")+e.message);}
@@ -88,6 +97,7 @@ async function svSave(){
     SV.dirty.clear();if(SV.pp)SV.pp.changed.clear();
     alertBox(L2("Fichiers modifiés téléchargés. Remplacez ceux du dossier du jeu (les prospections vont dans le sous-dossier Prospects).","Edited files downloaded. Replace the ones in the game folder (prospects go in the Prospects subfolder)."));}
   drawSaveBar();}
+function svDownload(name,txt){const blob=new Blob([txt],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
 function svBackupDownload(){for(const f of [...Object.values(SV.files),...Object.values(SV.prospects)]){const blob=new Blob([f.text],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="original_"+f.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}}
 
 /* ---------- Vue ---------- */
@@ -104,7 +114,7 @@ function renderSave(){
       <label class="more svfile">${L2("Choisir le dossier","Pick the folder")}<input type="file" id="svFolder" webkitdirectory directory multiple hidden></label>
       <label class="more svfile">${L2("Choisir des fichiers","Pick files")}<input type="file" id="svFiles" accept=".json,application/json" multiple hidden></label>
     </div>
-    <p class="exs">${L2("…ou glissez-déposez ici le dossier de votre SteamID ou tous les fichiers .json en même temps.","…or drag and drop your SteamID folder or all the .json files here at once.")}${canDir?"":" "+L2("Votre navigateur ne peut pas écrire dans le dossier : les fichiers modifiés seront téléchargés.","Your browser can't write to the folder: edited files will be downloaded.")}</p>
+    <p class="exs">${L2("…ou glissez-déposez ici le dossier de votre SteamID ou tous les fichiers .json en même temps.","…or drag and drop your SteamID folder or all the .json files here at once.")} ${L2("Les fichiers s'ajoutent à ceux déjà chargés.","Files are added to the ones already loaded.")}${canDir?"":" "+L2("Votre navigateur ne peut pas écrire dans le dossier : les fichiers modifiés seront téléchargés.","Your browser can't write to the folder: edited files will be downloaded.")}</p>
   </div>
   <p class="svmsg" id="svmsg" hidden></p>
   ${loaded?`<div class="svbar" id="svbar"></div>
@@ -119,12 +129,14 @@ function renderSave(){
   v.querySelectorAll('.svtabs button').forEach(b=>{b.setAttribute("aria-pressed",b.dataset.v===SV.tab);b.onclick=()=>{SV.tab=b.dataset.v;renderSave();};});
   drawSaveBar();({char:svChar_,res:svRes,tal:svTal,inv:svInv,pinv:svPinv})[SV.tab]();}
 function drawSaveBar(){const b=document.getElementById("svbar");if(!b)return;
-  const all=[...Object.values(SV.files),...Object.values(SV.prospects)];
-  b.innerHTML=`<span>${all.map(f=>`<span class="mtag">${esc(f.name)}</span>`).join("")}</span>
+  const all=[...Object.entries(SV.files),...Object.entries(SV.prospects).map(([n,f])=>["p:"+n,f])];
+  b.innerHTML=`<span class="svtags">${all.map(([k,f])=>`<span class="mtag svtag">${esc(f.name)}<button type="button" data-svrm="${esc(k)}" aria-label="${L2("Retirer","Remove")} ${esc(f.name)}" title="${L2("Retirer ce fichier","Remove this file")}">✕</button></span>`).join("")}${all.length>1?`<button type="button" class="linkbtn" id="svClr">${L2("Tout retirer","Remove all")}</button>`:""}</span>
    <span class="svdirty">${SV.dirty.size?L2(`${SV.dirty.size} fichier(s) modifié(s)`,`${SV.dirty.size} file(s) changed`):L2("Aucune modification","No changes")}</span>
    <button type="button" class="more" id="svBk">${L2("Télécharger une copie des originaux","Download a copy of the originals")}</button>
    <button type="button" class="primary" id="svSave" ${SV.dirty.size?"":"disabled"}>${SV.dir?L2("Enregistrer dans le jeu","Save to the game"):L2("Télécharger les fichiers modifiés","Download edited files")}</button>`;
-  b.querySelector("#svSave").onclick=svSave;b.querySelector("#svBk").onclick=svBackupDownload;}
+  b.querySelector("#svSave").onclick=svSave;b.querySelector("#svBk").onclick=svBackupDownload;
+  b.querySelectorAll("[data-svrm]").forEach(x=>x.onclick=()=>{const k=x.dataset.svrm;if(SV.dirty.has(k)&&!confirm(L2("Ce fichier a des modifications non enregistrées. Le retirer quand même ?","This file has unsaved changes. Remove it anyway?")))return;svRemove(k);});
+  b.querySelector("#svClr")?.addEventListener("click",()=>{if(SV.dirty.size&&!confirm(L2("Des modifications ne sont pas enregistrées. Tout retirer quand même ?","Some changes aren't saved. Remove everything anyway?")))return;svClearAll();});}
 
 /* Personnage */
 function svChar_(){const out=document.getElementById("svOut");

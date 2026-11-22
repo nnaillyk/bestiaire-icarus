@@ -350,8 +350,41 @@ table.loot th.num{text-align:right}
 .orebtn[aria-pressed="true"]{border-color:var(--map);box-shadow:inset 0 0 0 1px var(--map);background:var(--map-soft)}
 .orebtn:focus-visible{outline:2px solid var(--map);outline-offset:1px}
 .mappop{max-width:min(420px,calc(100% - 20px));max-height:calc(100% - 20px);overflow:auto}
-.mk.drill em{background:#1565c0}
-.mk.drill{box-shadow:0 0 0 2px #fff,0 0 0 4px rgba(0,0,0,.5)}
+.mk.drill{box-shadow:0 0 0 2px var(--dc,#fff),0 0 0 4px rgba(0,0,0,.55)}
+.mk-DOVs.known.drill{width:25px;height:25px;z-index:1}
+.mk-DOVs.drill:not(.known){width:14px;height:14px}
+.mk.mk-cave.drill{box-shadow:0 0 0 2px var(--dc,#fff),0 0 0 4px rgba(0,0,0,.55)}
+.drb{display:inline-grid;place-items:center;flex:none;width:20px;height:20px;border-radius:50%;background:var(--dc);color:var(--dg,#fff);box-shadow:0 0 0 1.5px rgba(255,255,255,.9),0 0 0 2.5px rgba(0,0,0,.35);font-style:normal;vertical-align:middle;position:relative}
+.drb{background:#fff;box-shadow:0 0 0 2px var(--dc),0 1px 3px rgba(0,0,0,.45)}
+.dremo{display:block;line-height:1;font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;font-style:normal}
+.mk em.drb{width:17px;height:17px;right:-9px;top:-9px;background:#fff;box-shadow:0 0 0 2px var(--dc),0 1px 3px rgba(0,0,0,.6)}.mk.mk-cave em.drb{transform:rotate(-45deg)}
+.drb.off::after{content:"";position:absolute;right:-3px;bottom:-3px;width:7px;height:7px;border-radius:50%;background:#e53935;box-shadow:0 0 0 1.5px #fff}
+.drb.corner{position:absolute;left:20px;top:-3px;width:15px;height:15px}
+.orebtn{position:relative}
+.orebtn[data-drill][aria-pressed="true"]{border-color:var(--dc,var(--map));box-shadow:inset 0 0 0 1px var(--dc,var(--map))}
+.mk.mk-drillonly{width:22px;height:22px;background:#fff;box-shadow:0 0 0 2px var(--dc),0 0 0 4px rgba(0,0,0,.5);border-radius:6px}
+.mk.flash{animation:mkflash .5s ease-in-out 3;z-index:4}
+@keyframes mkflash{50%{transform:translate(-50%,-50%) scale(1.8)}}
+.mk.mk-cave.flash{animation:none;z-index:4;outline:3px solid #fff}
+.drillfilter .mk:not(.mk-DOVs):not(.mk-cave):not(.mk-drillonly):not(.mk-spawn){opacity:.3}
+.mapinner.glide{transition:transform .35s ease,width .35s ease,height .35s ease}
+@media (prefers-reduced-motion:reduce){.mk.flash{animation:none;outline:3px solid #fff}.mapinner.glide{transition:none}}
+.drillcard{position:relative;display:flex;gap:10px;align-items:center;margin-top:6px;padding:8px 10px;border-radius:8px;background:var(--map-soft);border-left:4px solid var(--dc)}
+.drillcard>.pic{width:40px;height:40px;flex:none}
+.drillcard .drb.corner{left:38px;top:2px}
+.dstat{font-size:.78rem;font-weight:600}
+.dstat.on{color:#2e7d32}.dstat.off{color:#c62828}
+.drillbar{flex-basis:100%;display:grid;gap:6px;margin-top:4px}
+.drillbar .chip .drb{width:18px;height:18px}
+.drilllist{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;max-height:260px;overflow:auto;padding:2px}
+.drow{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-left:4px solid var(--dc);border-radius:8px;background:var(--panel);font-size:.82rem;line-height:1.25}
+.drow:hover{border-color:var(--muted);border-left-color:var(--dc)}
+.drow:focus-visible{outline:2px solid var(--map);outline-offset:1px}
+.drow .pic{width:26px;height:26px;flex:none}
+.drow .dtxt{flex:1;min-width:0}
+.drow .dgo{color:var(--muted)}
+.tbtns{display:inline-flex;gap:6px;flex-wrap:wrap}
+.tbtns .more{padding:4px 12px;font-size:.8rem;min-height:0}
 .mapview.mapfs{position:fixed;inset:0;z-index:60;height:100vh;height:100dvh;min-height:0;border:0;border-radius:0}
 .mapview.mapfs .mapzoom{top:max(10px,env(safe-area-inset-top,0px));right:max(10px,env(safe-area-inset-right,0px))}
 .mapview.mapfs .mappop{bottom:max(10px,env(safe-area-inset-bottom,0px))}
@@ -370,6 +403,38 @@ body.noscroll{overflow:hidden}
 .svbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line);margin-bottom:12px;position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);z-index:4}
 .svbar .more,.svbar .primary{margin:0}
 .svbar .primary[disabled]{opacity:.45;cursor:default}
+.svtags{display:inline-flex;flex-wrap:wrap;gap:4px;align-items:center}
+.svtag{display:inline-flex;align-items:center;gap:4px;padding:2px 3px 2px 7px;font-size:.72rem}
+.svtag button,.prx{all:unset;cursor:pointer;width:18px;height:18px;display:grid;place-items:center;border-radius:50%;font-size:.7rem;color:var(--muted)}
+.svtag button:hover,.prx:hover{background:var(--line);color:var(--ink,inherit)}
+.svtag button:focus-visible,.prx:focus-visible{outline:2px solid var(--map)}
+.proslist{margin-bottom:8px}
+.prchip{display:inline-flex;align-items:center;gap:2px}
+/* Conseiller IA */
+.aibox{display:grid;gap:12px}
+.aicard{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:12px 14px}
+.aicard h3{margin:0 0 6px}
+.aistatus{display:flex;flex-wrap:wrap;gap:6px}
+.aiok{color:#2e7d32}.aino{color:var(--muted)}
+.aiasks{display:flex;flex-wrap:wrap;gap:8px}
+.aiask{all:unset;cursor:pointer;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--bg);font-size:.86rem;display:flex;gap:8px;align-items:center;max-width:100%}
+.aiask:hover{border-color:var(--map)}
+.aiask:focus-visible{outline:2px solid var(--map);outline-offset:1px}
+.aiask[disabled]{opacity:.5;cursor:default}
+.aithread{display:grid;gap:10px}
+.aimsg{border-radius:12px;padding:10px 14px;line-height:1.5;font-size:.92rem;overflow-wrap:anywhere}
+.aimsg.u{background:var(--map-soft);justify-self:end;max-width:min(560px,92%)}
+.aimsg.a{background:var(--panel);border:1px solid var(--line)}
+.aimsg.a h3,.aimsg.a h4{margin:12px 0 4px}.aimsg.a h3:first-child,.aimsg.a h4:first-child{margin-top:0}
+.aimsg.a ul,.aimsg.a ol{margin:4px 0;padding-left:20px}
+.aimsg.a p{margin:6px 0}
+.aimsg.err{border-color:#c62828;color:#c62828}
+.aiform{display:flex;gap:8px;align-items:flex-end}
+.aiform textarea{flex:1;min-height:44px;max-height:180px;resize:vertical;font:inherit;padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:inherit}
+.aikey{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.aikey input{flex:1;min-width:200px;font:inherit;padding:7px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:inherit}
+.aidots::after{content:"…";animation:aidot 1s steps(3) infinite}
+@keyframes aidot{0%{content:"."}33%{content:".."}66%{content:"..."}}
 .svdirty{font:.76rem var(--f-mono);color:var(--muted);margin-right:auto}
 .svtabs{margin-bottom:14px}
 .svgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-top:10px}
@@ -424,26 +489,27 @@ code.path{font:.78rem var(--f-mono);background:var(--panel);padding:2px 6px;bord
   .pic.hero-img{width:84px;height:84px}
 }
 </style>
-<script src="data.js?v=17"></script>
-<script src="items.js?v=17"></script>
-<script src="lore-en.js?v=17"></script>
-<script src="i18n.js?v=17"></script>
-<script src="loc.js?v=17"></script>
-<script src="gamefix.js?v=17"></script>
-<script src="fixes.js?v=17"></script>
-<script src="app.js?v=17"></script>
-<script src="talents.js?v=17"></script>
-<script src="features.js?v=17"></script>
-<script src="mounts.js?v=17"></script>
-<script src="extras.js?v=17"></script>
-<script src="mapsdata.js?v=17"></script>
-<script src="mapsview.js?v=17"></script>
-<script src="ueprop.js?v=17"></script>
-<script src="savedata.js?v=17"></script>
-<script src="saveview.js?v=17"></script>
-<script src="foods.js?v=17"></script>
-<script src="foodview.js?v=17"></script>
-<script src="spawnzones.js?v=17"></script>
-<script src="accueil.js?v=17"></script>
+<script src="data.js?v=19"></script>
+<script src="items.js?v=19"></script>
+<script src="lore-en.js?v=19"></script>
+<script src="i18n.js?v=19"></script>
+<script src="loc.js?v=19"></script>
+<script src="gamefix.js?v=19"></script>
+<script src="fixes.js?v=19"></script>
+<script src="app.js?v=19"></script>
+<script src="talents.js?v=19"></script>
+<script src="features.js?v=19"></script>
+<script src="mounts.js?v=19"></script>
+<script src="extras.js?v=19"></script>
+<script src="mapsdata.js?v=19"></script>
+<script src="mapsview.js?v=19"></script>
+<script src="ueprop.js?v=19"></script>
+<script src="savedata.js?v=19"></script>
+<script src="saveview.js?v=19"></script>
+<script src="conseil.js?v=19"></script>
+<script src="foods.js?v=19"></script>
+<script src="foodview.js?v=19"></script>
+<script src="spawnzones.js?v=19"></script>
+<script src="accueil.js?v=19"></script>
 </body>
 </html>

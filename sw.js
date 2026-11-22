@@ -1,10 +1,10 @@
 // Service worker : l'app marche hors connexion.
 // Fichiers de l'app : réseau d'abord (toujours à jour), cache si hors ligne.
 // Images du wiki et polices : cache d'abord, gardées au fur et à mesure.
-const VERSION="17";
+const VERSION="19";
 const CACHE="bestiaire-app-v"+VERSION;
 const IMG_CACHE="bestiaire-images-v1";
-const FILES=["./","index.html","data.js?v="+VERSION,"items.js?v="+VERSION,"lore-en.js?v="+VERSION,"i18n.js?v="+VERSION,"loc.js?v="+VERSION,"gamefix.js?v="+VERSION,"fixes.js?v="+VERSION,"app.js?v="+VERSION,"talents.js?v="+VERSION,"features.js?v="+VERSION,"mounts.js?v="+VERSION,"extras.js?v="+VERSION,"mapsdata.js?v="+VERSION,"mapsview.js?v="+VERSION,"ueprop.js?v="+VERSION,"savedata.js?v="+VERSION,"saveview.js?v="+VERSION,"foods.js?v="+VERSION,"foodview.js?v="+VERSION,"spawnzones.js?v="+VERSION,"accueil.js?v="+VERSION,"manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png"];
+const FILES=["./","index.html","data.js?v="+VERSION,"items.js?v="+VERSION,"lore-en.js?v="+VERSION,"i18n.js?v="+VERSION,"loc.js?v="+VERSION,"gamefix.js?v="+VERSION,"fixes.js?v="+VERSION,"app.js?v="+VERSION,"talents.js?v="+VERSION,"features.js?v="+VERSION,"mounts.js?v="+VERSION,"extras.js?v="+VERSION,"mapsdata.js?v="+VERSION,"mapsview.js?v="+VERSION,"ueprop.js?v="+VERSION,"savedata.js?v="+VERSION,"saveview.js?v="+VERSION,"conseil.js?v="+VERSION,"foods.js?v="+VERSION,"foodview.js?v="+VERSION,"spawnzones.js?v="+VERSION,"accueil.js?v="+VERSION,"manifest.webmanifest","icons/icon-192.png","icons/icon-512.png","icons/apple-touch-icon.png"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(FILES.map(f=>new Request(f,{cache:"reload"})))).then(()=>self.skipWaiting()));});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE&&k!==IMG_CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
 self.addEventListener("fetch",e=>{
